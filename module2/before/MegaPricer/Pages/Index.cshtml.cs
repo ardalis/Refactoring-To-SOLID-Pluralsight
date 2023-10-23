@@ -43,6 +43,6 @@ public class IndexModel : PageModel
             .First();
         if(kitchen != null) { Kitchen = kitchen; }
 
-        Price = PricingService.CalculatePrice(kitchen.KitchenId, 0, User.Identity.Name, "");
+        Price = PricingService.CalculatePrice(kitchen.KitchenId, 1, User.Identity.Name, "");
     }
 }

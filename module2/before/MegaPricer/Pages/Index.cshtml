@@ -1,5 +1,6 @@
 ﻿@page
 @using MegaPricer.Data;
+@using MegaPricer.Services;
 @model IndexModel
 @{
     ViewData["Title"] = "Home page";
@@ -13,5 +14,8 @@
 @foreach(var wall in Model.Kitchen.Walls)
 {
     <h3>Wall @wall.Name</h3>
+    <span>Wall Order: @wall.WallOrder</span>
+    <span>Price: @PricingService.CalculatePrice(Model.Kitchen.KitchenId, wall.WallOrder, User.Identity.Name, "")</span>
+
 }
 

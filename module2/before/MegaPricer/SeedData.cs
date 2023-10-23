@@ -22,11 +22,14 @@ public static class SeedData
     {
         var kitchen = new Kitchen();
         kitchen.Name = "Smiths Kitchen";
+        kitchen.BaseHeight = 0.25f;
+        kitchen.BaseDepth = 0.25f;
 
-        kitchen.Walls.Add(new Wall() { Name = "North wall" });
-        kitchen.Walls.Add(new Wall() { Name = "Northeast wall" });
-        kitchen.Walls.Add(new Wall() { Name = "East wall" });
-        kitchen.Walls.Add(new Wall() { Name = "South wall" });
+        int order = 1;
+        kitchen.Walls.Add(new Wall() { Name = "North wall", WallOrder=order++});
+        kitchen.Walls.Add(new Wall() { Name = "Northeast wall", WallOrder = order++ });
+        kitchen.Walls.Add(new Wall() { Name = "East wall", WallOrder = order++ });
+        kitchen.Walls.Add(new Wall() { Name = "South wall", WallOrder = order++ });
 
         return kitchen;
     }

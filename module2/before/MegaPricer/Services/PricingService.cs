@@ -10,6 +10,7 @@ public class PricingService
     {
         if (Context.Session[userName]["PricingOff"] == "Y") return "0|0|0";
 
+        Kitchen kitchen = new Kitchen();
         float subtotal = 0;
         float subtotalFlat = 0;
         float subtotalPlus = 0;
@@ -20,12 +21,26 @@ public class PricingService
         float thisPartHeight = 0;
         float thisPartCost = 0;
         float thisSectionWidth = 0;
+        float bbHeight = 0;
+        float bbDepth = 0;
         DataTable dt = new DataTable();
 
         Context.Session[userName]["WallWeight"] = 0;
 
         try
         {
+            if(wallOrderNum == 0)
+            {
+                return "Session expired: Log in again.";
+            }
+            if(kitchenId <= 0)
+            {
+                return "invalid kitchenId";
+            }
+            Kitchen.GetCustomerKitchen(kitchenId, userName);
+            bbHeight = kitchen.BaseHeight;
+            bbDepth = kitchen.BaseDepth;
+
             return String.Format("{0:C2}|{1:C2}|{2:C2}", subtotal, subtotalFlat, subtotalPlus);
         }
         catch (Exception ex)
