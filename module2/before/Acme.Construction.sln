@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MegaPricer", "MegaPricer\MegaPricer.csproj", "{31B8486A-2128-495A-867B-DDDE889509C2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "solution items", "solution items", "{7BD07B73-3B64-4E68-8B10-654FA15070A3}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{31B8486A-2128-495A-867B-DDDE889509C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31B8486A-2128-495A-867B-DDDE889509C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31B8486A-2128-495A-867B-DDDE889509C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31B8486A-2128-495A-867B-DDDE889509C2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1B57B146-520E-4EA6-8B9A-5F51E7AD9AF4}
+	EndGlobalSection
+EndGlobal

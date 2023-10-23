@@ -1,0 +1,17 @@
+﻿@page
+@using MegaPricer.Data;
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome @Context.Session[User.Identity.Name]["CompanyShortName"]</h1>
+</div>
+<h2>Kitchen @Model.Kitchen.Name</h2>
+<b>Price: </b> @Model.Price
+@foreach(var wall in Model.Kitchen.Walls)
+{
+    <h3>Wall @wall.Name</h3>
+}
+
