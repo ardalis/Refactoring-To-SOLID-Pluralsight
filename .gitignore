@@ -396,3 +396,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+/module2/before/MegaPricer/database.sqlite
+/module2/before/MegaPricer/database.sqlite-shm
+/module2/before/MegaPricer/database.sqlite-wal
