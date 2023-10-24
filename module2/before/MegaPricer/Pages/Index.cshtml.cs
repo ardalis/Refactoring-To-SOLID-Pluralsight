@@ -22,7 +22,7 @@ public class IndexModel : PageModel
 
     public void OnGet()
     {
-        if (!(User is null))
+        if (!(User is null) && User.Identity.IsAuthenticated)
         {
             if (!Context.Session.ContainsKey(User.Identity.Name))
             {
