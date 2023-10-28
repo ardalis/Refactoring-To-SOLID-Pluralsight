@@ -10,11 +10,7 @@ public class Wall
   public int VertColor { get; set; }
   public int BackingColor { get; set; }
   public List<Cabinet> Cabinets { get; set; } = new();
-  public bool IsIsland { get; internal set; }
-
-  public static Wall GetKitchenWallByOrderNum(int kitchenId, int wallOrderNum, string company)
-  {
-    return new Wall();
-  }
+  public bool IsIsland { get; set; }
+  public float Height { get; set; }
 }
 

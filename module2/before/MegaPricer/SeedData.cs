@@ -148,4 +148,16 @@ public static class SeedData
     dbContext.PricingColors.Add(pricingColor3);
     dbContext.SaveChanges();
   }
+
+  public static void PopulatePricingSkus(ApplicationDbContext dbContext)
+  {
+    var pricingSku = new PricingSku()
+    { 
+      SKU= "CAB-1",
+      WholesalePrice = 109.99f
+    };
+    dbContext.PricingSkus.Add(pricingSku);
+    dbContext.SaveChanges();
+
+  }
 }

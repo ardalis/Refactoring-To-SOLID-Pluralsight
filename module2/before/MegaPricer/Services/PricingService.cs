@@ -1,7 +1,9 @@
 ﻿using System.Data;
+using System.IO;
 using System.Net.Mail;
 using MegaPricer.Data;
 using Microsoft.Data.Sqlite;
+using Microsoft.VisualBasic;
 
 namespace MegaPricer.Services;
 
@@ -22,9 +24,17 @@ public class PricingService
     float thisPartHeight = 0;
     float thisPartCost = 0;
     float thisSectionWidth = 0;
+    string thisPartSku = "";
     float bbHeight = 0;
     float bbDepth = 0;
+    int defaultColor = 0;
+    int thisPartColor = 0;
+    float thisColorMarkup = 0;
+    float thisUserMarkup = 0;
+    bool isIsland = false;
+    int wallId = 0;
     DataTable dt = new DataTable();
+    DataTable dt2 = new DataTable();
 
     Context.Session[userName]["WallWeight"] = 0;
 
@@ -44,7 +54,7 @@ public class PricingService
       using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
       {
         var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT * FROM Wall WHERE KitchenId = @kitchenId AND WallOrder = @wallOrderNum";
+        cmd.CommandText = "SELECT * FROM Walls WHERE KitchenId = @kitchenId AND WallOrder = @wallOrderNum";
         cmd.Parameters.AddWithValue("@kitchenId", kitchenId);
         cmd.Parameters.AddWithValue("@wallOrderNum", wallOrderNum);
         conn.Open();
@@ -61,11 +71,124 @@ public class PricingService
         }
       }
 
+      if (dt.Rows.Count == 0)
+      {
+        return "invalid wallOrderNum";
+      }
+      defaultColor = dt.Rows[0].Field<int>("CabinetColor");
+      wallId = dt.Rows[0].Field<int>("WallId");
+      isIsland = dt.Rows[0].Field<bool>("IsIsland");
+
+      using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
+      {
+        var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT * FROM Cabinets WHERE WallId = @wallId ORDER BY CabinetOrder";
+        cmd.Parameters.AddWithValue("@wallId", wallId);
+        conn.Open();
+        using (SqliteDataReader dr = cmd.ExecuteReader())
+        {
+          do
+          {
+            dt2.BeginLoadData();
+            dt2.Load(dr);
+            dt2.EndLoadData();
+
+          } while (!dr.IsClosed && dr.NextResult());
+        }
+      }
+
+      foreach (DataRow row in dt2.Rows) // each cabinet
+      {
+        thisPartWidth = row.Field<float>("Width");
+        thisPartDepth = row.Field<float>("Depth");
+        thisPartHeight = row.Field<float>("Height");
+        thisPartColor = row.Field<int>("Color");
+        thisPartSku = row.Field<string>("SKU");
+        thisPartCost = 0;
+        thisSectionWidth = 0;
+
+        if (!String.IsNullOrEmpty(thisPartSku))
+        {
+          using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
+          {
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT * FROM PricingSkus WHERE SKU = @sku";
+            cmd.Parameters.AddWithValue("@sku", thisPartSku);
+            conn.Open();
+            using (SqliteDataReader dr = cmd.ExecuteReader())
+            {
+              if (dr.HasRows && dr.Read())
+              {
+                thisPartCost = dr.GetFloat("WholesalePrice");
+              }
+            }
+          }
+          using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
+          {
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT * FROM PricingColors WHERE PricingColorId = @pricingColorId";
+            cmd.Parameters.AddWithValue("@pricingColorId", thisPartColor);
+            conn.Open();
+            using (SqliteDataReader dr = cmd.ExecuteReader())
+            {
+              if (dr.HasRows && dr.Read())
+              {
+                thisColorMarkup = dr.GetFloat("PercentMarkup");
+              }
+            }
+          }
+          subtotal += thisPartCost * (1 + thisColorMarkup / 100);
+          subtotalFlat += thisPartCost;
+
+          using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
+          {
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT * FROM UserMarkups WHERE UserName = @userName";
+            cmd.Parameters.AddWithValue("@userName", userName);
+            conn.Open();
+            using (SqliteDataReader dr = cmd.ExecuteReader())
+            {
+              if (dr.HasRows && dr.Read())
+              {
+                thisUserMarkup = dr.GetFloat("MarkupPercent");
+              }
+            }
+          }
+          subtotalPlus = thisPartCost * (1 + thisColorMarkup / 100) * (1 + thisUserMarkup / 100);
+        }
+      }
+      if (!isIsland)
+      {
+        // price wall color backing around cabinets
+
+      }
+      
+      if(refType=="Order")
+      {
+        //var Order = new();
+        //Order.SaveOrder(kitchenId, wallOrderNum, userName); 
+      }
+      else if (refType == "PriceReport")
+      {
+        // Update and save the price report
+        string path = "/files/orders/"
+          + DateTime.Today.ToString("yyyy-MM-dd") + ".csv";
+        var sr = new StreamWriter(path);
+        sr.WriteLine($"{kitchen.Name} ({kitchen.KitchenId}) - Run time: {DateTime.Now.ToLongTimeString()} ");
+        sr.WriteLine("");
+        sr.WriteLine("Part Name,Part SKU,Height,Width,Depth,Color,Sq Ft $, Lin Ft $,Per Piece $,# Needed,Part Price,Sq Ft $,Add On $,Add On %,Min Price,Total Part Price");
+      }
+      else
+      {
+        // Just get the cost
+      }
+
       return String.Format("{0:C2}|{1:C2}|{2:C2}", subtotal, subtotalFlat, subtotalPlus);
     }
     catch (Exception ex)
     {
       GlobalHelpers.SendErrorEmail("CalcPrice", ex.Message, ex.StackTrace);
+      throw;
     }
 
     return "";

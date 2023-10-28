@@ -14,6 +14,7 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
   public DbSet<Feature> Features { get; set; }
   public DbSet<Kitchen> Kitchens { get; set; }
   public DbSet<PricingColor> PricingColors { get; set; }
+  public DbSet<PricingSku> PricingSkus { get; set; }
   public DbSet<UserMarkup> UserMarkups { get; set; }
   public DbSet<Wall> Walls { get; set; }
 

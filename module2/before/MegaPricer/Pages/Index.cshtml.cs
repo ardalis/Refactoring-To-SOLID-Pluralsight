@@ -40,9 +40,11 @@ public class IndexModel : PageModel
 
         var kitchen = _dbContext.Kitchens
             .Include(k => k.Walls)
+            .ThenInclude(w => w.Cabinets)
+            .ThenInclude(c => c.Features)
             .First();
         if(kitchen != null) { Kitchen = kitchen; }
 
-        Price = PricingService.CalculatePrice(kitchen.KitchenId, 1, User.Identity.Name, "");
+        //Price = PricingService.CalculatePrice(kitchen.KitchenId, 1, User.Identity.Name, "");
     }
 }
