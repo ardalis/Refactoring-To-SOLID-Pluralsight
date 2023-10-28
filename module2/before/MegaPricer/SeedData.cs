@@ -27,11 +27,12 @@ public static class SeedData
     kitchen.UserId = Guid.Parse(ConfigurationSettings.AdminUserId);
 
     int order = 1;
-    kitchen.Walls.Add(new Wall() { Name = "North wall", WallOrder = order++, BackingColor=1 });
-    kitchen.Walls.Add(new Wall() { Name = "Northeast wall", WallOrder = order++, BackingColor = 1 });
-    kitchen.Walls.Add(new Wall() { Name = "East wall", WallOrder = order++, BackingColor = 1 });
-    kitchen.Walls.Add(new Wall() { Name = "South wall", WallOrder = order++, BackingColor = 1 });
-    kitchen.Walls.Add(new Wall() { Name = "Island", WallOrder = order++, IsIsland = true, BackingColor = 0 });
+    float height = 96.0f; // 8 feet
+    kitchen.Walls.Add(new Wall() { Name = "North wall", WallOrder = order++, BackingColor=1, Height=height, CabinetColor=4 });
+    kitchen.Walls.Add(new Wall() { Name = "Northeast wall", WallOrder = order++, BackingColor = 1, Height = height, CabinetColor = 4 });
+    kitchen.Walls.Add(new Wall() { Name = "East wall", WallOrder = order++, BackingColor = 1, Height = height, CabinetColor = 4 });
+    kitchen.Walls.Add(new Wall() { Name = "South wall", WallOrder = order++, BackingColor = 1, Height = height, CabinetColor = 4 });
+    kitchen.Walls.Add(new Wall() { Name = "Island", WallOrder = order++, IsIsland = true, BackingColor = 0, Height = 36.0f, CabinetColor = 4 });
 
     return kitchen;
   }
@@ -39,6 +40,8 @@ public static class SeedData
   public static void PopulateTestData(ApplicationDbContext dbContext)
   {
     PopulatePricingColors(dbContext);
+    PopulatePricingSkus(dbContext);
+    PopulateUserMarkups(dbContext);
 
     foreach (var item in dbContext.Kitchens)
     {
@@ -147,6 +150,17 @@ public static class SeedData
     };
     dbContext.PricingColors.Add(pricingColor3);
     dbContext.SaveChanges();
+
+    var pricingColor4 = new PricingColor()
+    {
+      Name = "White Cabinet",
+      ColorPerSquareFoot = 0.15f,
+      PercentMarkup = 15,
+      WholesalePrice = 0.0f
+    };
+    dbContext.PricingColors.Add(pricingColor4);
+    dbContext.SaveChanges();
+
   }
 
   public static void PopulatePricingSkus(ApplicationDbContext dbContext)
@@ -159,5 +173,15 @@ public static class SeedData
     dbContext.PricingSkus.Add(pricingSku);
     dbContext.SaveChanges();
 
+  }
+  public static void PopulateUserMarkups(ApplicationDbContext dbContext)
+  {
+    var userMarkup = new UserMarkup()
+    {
+      MarkupPercent = 10,
+      UserName = "admin@test.com"
+    };
+    dbContext.UserMarkups.Add(userMarkup);
+    dbContext.SaveChanges();
   }
 }

@@ -75,10 +75,9 @@ public class PricingService
       {
         return "invalid wallOrderNum";
       }
-      defaultColor = dt.Rows[0].Field<int>("CabinetColor");
-      wallId = dt.Rows[0].Field<int>("WallId");
-      isIsland = dt.Rows[0].Field<bool>("IsIsland");
-
+      defaultColor = Convert.ToInt32(dt.Rows[0]["CabinetColor"]);// dt.Rows[0].Field<int>("CabinetColor");
+      wallId = Convert.ToInt32(dt.Rows[0]["WallId"]);
+      isIsland = Convert.ToBoolean(dt.Rows[0]["IsIsland"]);
       using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
       {
         var cmd = conn.CreateCommand();
@@ -99,10 +98,10 @@ public class PricingService
 
       foreach (DataRow row in dt2.Rows) // each cabinet
       {
-        thisPartWidth = row.Field<float>("Width");
-        thisPartDepth = row.Field<float>("Depth");
-        thisPartHeight = row.Field<float>("Height");
-        thisPartColor = row.Field<int>("Color");
+        thisPartWidth = Convert.ToSingle(row["Width"]); // row.Field<float>("Width");
+        thisPartDepth = Convert.ToSingle(row["Depth"]); // row.Field<float>("Depth");
+        thisPartHeight = Convert.ToSingle(row["Height"]); // row.Field<float>("Height");
+        thisPartColor = Convert.ToInt32(row["Color"]); // row.Field<int>("Color");
         thisPartSku = row.Field<string>("SKU");
         thisPartCost = 0;
         thisSectionWidth = 0;
