@@ -2,5 +2,5 @@
 
 public static class Context
 {
-    public static Dictionary<string, Dictionary<string,object>> Session = new();
+  public static Dictionary<string, Dictionary<string, object>> Session = new();
 }
