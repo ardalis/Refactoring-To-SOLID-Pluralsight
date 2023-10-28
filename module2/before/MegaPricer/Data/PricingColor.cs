@@ -3,8 +3,8 @@
 public class PricingColor
 {
   public int PricingColorId { get; set; }
-  public string SKU { get; set; }
-  public float Price { get; set; }
+  public string Name { get; set; }
+  public float WholesalePrice { get; set; }
   public float PercentMarkup { get; set; }
   public float ColorPerSquareFoot { get; set; }
 
