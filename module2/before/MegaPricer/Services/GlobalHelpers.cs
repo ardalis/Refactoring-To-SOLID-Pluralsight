@@ -15,8 +15,8 @@ public static class GlobalHelpers
     }
   }
 
-  internal static float Format(float value)
+  internal static decimal Format(float value)
   {
-    return (float)Math.Round(value, 2);
+    return (decimal)Math.Round(value, 2);
   }
 }

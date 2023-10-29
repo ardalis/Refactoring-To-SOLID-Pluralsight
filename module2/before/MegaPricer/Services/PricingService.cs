@@ -204,9 +204,19 @@ public class PricingService
         if (refType == "Order")
         {
           // add this part to the order
-
-          //var Order = new();
-          //Order.SaveOrder(kitchenId, wallOrderNum, userName); 
+          using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
+          {
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = "INSERT INTO ORDERITEM (OrderId,SKU,Quantity,BasePrice,Markup,UserMarkup) VALUES (@orderId,@sku,@quantity,@basePrice,@markup,@userMarkup)";
+            cmd.Parameters.AddWithValue("@orderId", order.OrderId);
+            cmd.Parameters.AddWithValue("@sku", thisPartSku);
+            cmd.Parameters.AddWithValue("@quantity", thisPartQty == 0 ? 1 : thisPartQty);
+            cmd.Parameters.AddWithValue("@basePrice", GlobalHelpers.Format(thisPartCost));
+            cmd.Parameters.AddWithValue("@markup", GlobalHelpers.Format(thisTotalPartCost - thisPartCost));
+            cmd.Parameters.AddWithValue("@userMarkup", GlobalHelpers.Format(thisTotalPartCost * (1 + thisUserMarkup / 100) - thisTotalPartCost));
+            conn.Open();
+            cmd.ExecuteNonQuery();
+          }
         }
         else if (refType == "PriceReport")
         {
