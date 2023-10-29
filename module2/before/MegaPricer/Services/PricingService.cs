@@ -13,6 +13,7 @@ public class PricingService
     if (Context.Session[userName]["PricingOff"] == "Y") return "0|0|0";
 
     Kitchen kitchen = new Kitchen();
+    Order order = new Order();
     float subtotal = 0;
     float subtotalFlat = 0;
     float subtotalPlus = 0;
@@ -53,7 +54,7 @@ public class PricingService
       {
         return "invalid kitchenId";
       }
-      Kitchen.GetCustomerKitchen(kitchenId, userName);
+      kitchen.GetCustomerKitchen(kitchenId, userName);
       bbHeight = kitchen.BaseHeight;
       bbDepth = kitchen.BaseDepth;
       using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
@@ -85,11 +86,30 @@ public class PricingService
       {
         // Start writing to the report file
         string baseDirectory = AppContext.BaseDirectory;
-        string path = baseDirectory + DateTime.Today.ToString("yyyy-MM-dd") + "_Orders.csv";
+        string path = baseDirectory + "Orders.csv";
         sr = new StreamWriter(path);
         sr.WriteLine($"{kitchen.Name} ({kitchen.KitchenId}) - Run time: {DateTime.Now.ToLongTimeString()} ");
         sr.WriteLine("");
         sr.WriteLine("Part Name,Part SKU,Height,Width,Depth,Color,Sq Ft $, Lin Ft $,Per Piece $,# Needed,Part Price,Add On %,Total Part Price");
+      }
+      else if (refType == "Order")
+      {
+        // create a new order
+        order.KitchenId = kitchenId;
+        using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
+        {
+          var cmd = conn.CreateCommand();
+          cmd.CommandText = "INSERT INTO ORDERS (KitchenId,OrderDate,OrderStatus,OrderType) VALUES (@kitchenId,@orderDate,@orderStatus,@orderType)";
+          cmd.Parameters.AddWithValue("@kitchenId", order.KitchenId);
+          cmd.Parameters.AddWithValue("@orderDate", order.OrderDate);
+          cmd.Parameters.AddWithValue("@orderStatus", order.OrderStatus);
+          cmd.Parameters.AddWithValue("@orderType", order.OrderType);
+          conn.Open();
+          cmd.ExecuteNonQuery();
+          var cmd2 = conn.CreateCommand();
+          cmd2.CommandText = "SELECT last_insert_rowid();";
+          order.OrderId = Convert.ToInt32(cmd2.ExecuteScalar());
+        }
       }
 
       defaultColor = Convert.ToInt32(dt.Rows[0]["CabinetColor"]);// dt.Rows[0].Field<int>("CabinetColor");
@@ -175,26 +195,28 @@ public class PricingService
           }
           subtotalPlus = thisTotalPartCost * (1 + thisUserMarkup / 100);
         }
-      }
-      if (!isIsland)
-      {
-        // price wall color backing around cabinets
+        if (!isIsland)
+        {
+          // price wall color backing around cabinets
 
-      }
+        }
 
-      if (refType == "Order")
-      {
-        //var Order = new();
-        //Order.SaveOrder(kitchenId, wallOrderNum, userName); 
-      }
-      else if (refType == "PriceReport")
-      {
-        // write out required part(s) to the report file
-        sr.WriteLine($"{thisPartSku},{thisPartHeight},{thisPartWidth},{thisPartDepth},{thisPartColorName},{thisColorSquareFoot},{thisLinearFootCost},{thisPartCost},{thisPartQty},{thisPartCost*thisPartQty},{thisColorMarkup},{GlobalHelpers.Format(thisTotalPartCost)}");
-      }
-      else
-      {
-        // Just get the cost
+        if (refType == "Order")
+        {
+          // add this part to the order
+
+          //var Order = new();
+          //Order.SaveOrder(kitchenId, wallOrderNum, userName); 
+        }
+        else if (refType == "PriceReport")
+        {
+          // write out required part(s) to the report file
+          sr.WriteLine($"{thisPartSku},{thisPartHeight},{thisPartWidth},{thisPartDepth},{thisPartColorName},{thisColorSquareFoot},{thisLinearFootCost},{thisPartCost},{thisPartQty},{thisPartCost * thisPartQty},{thisColorMarkup},{GlobalHelpers.Format(thisTotalPartCost)}");
+        }
+        else
+        {
+          // Just get the cost
+        }
       }
 
       return String.Format("{0:C2}|{1:C2}|{2:C2}", subtotal, subtotalFlat, subtotalPlus);

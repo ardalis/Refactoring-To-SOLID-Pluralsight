@@ -13,6 +13,7 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
   public DbSet<Cabinet> Cabinets { get; set; }
   public DbSet<Feature> Features { get; set; }
   public DbSet<Kitchen> Kitchens { get; set; }
+  public DbSet<Order> Orders { get; set; }
   public DbSet<PricingColor> PricingColors { get; set; }
   public DbSet<PricingSku> PricingSkus { get; set; }
   public DbSet<UserMarkup> UserMarkups { get; set; }

@@ -4,19 +4,16 @@ namespace MegaPricer.Data;
 
 public class Kitchen
 {
-    public int KitchenId { get; set; }
-    public Guid UserId { get; set;}
-    public string Name { get; set; }
-    public List<Wall> Walls { get; set; } = new();
-    public float BaseHeight { get; set; }
-    public float BaseDepth { get; set; }
+  public int KitchenId { get; set; }
+  public Guid UserId { get; set; }
+  public string Name { get; set; }
+  public List<Wall> Walls { get; set; } = new();
+  public float BaseHeight { get; set; }
+  public float BaseDepth { get; set; }
 
-  internal static void GetCustomerKitchen(int kitchenId, string userName)
+  internal void GetCustomerKitchen(int kitchenId, string userName)
   {
-    var kitchen = new Kitchen()
-    {
-      KitchenId = kitchenId
-    };
+    KitchenId = kitchenId;
     using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
     {
       var cmd = conn.CreateCommand();
@@ -28,13 +25,12 @@ public class Kitchen
       {
         if (dr.HasRows && dr.Read())
         {
-          kitchen.UserId = dr.GetGuid(1);
-          kitchen.Name = dr.GetString(2);
-          kitchen.BaseHeight = dr.GetFloat(3);
-          kitchen.BaseDepth = dr.GetFloat(4);
+          UserId = dr.GetGuid(1);
+          Name = dr.GetString(2);
+          BaseHeight = dr.GetFloat(3);
+          BaseDepth = dr.GetFloat(4);
         }
       }
     }
-
   }
 }
