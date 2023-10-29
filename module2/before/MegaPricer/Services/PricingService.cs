@@ -1,6 +1,5 @@
 ﻿using System.Data;
 using System.IO;
-using System.Net.Mail;
 using MegaPricer.Data;
 using Microsoft.Data.Sqlite;
 using Microsoft.VisualBasic;
@@ -29,12 +28,18 @@ public class PricingService
     float bbDepth = 0;
     int defaultColor = 0;
     int thisPartColor = 0;
+    string thisPartColorName = "";
     float thisColorMarkup = 0;
+    float thisColorSquareFoot = 0;
+    float thisLinearFootCost = 0;
     float thisUserMarkup = 0;
+    int thisPartQty = 0;
+    float thisTotalPartCost = 0;
     bool isIsland = false;
     int wallId = 0;
     DataTable dt = new DataTable();
     DataTable dt2 = new DataTable();
+    StreamWriter sr = null;
 
     Context.Session[userName]["WallWeight"] = 0;
 
@@ -75,6 +80,18 @@ public class PricingService
       {
         return "invalid wallOrderNum";
       }
+
+      if (refType == "PriceReport")
+      {
+        // Start writing to the report file
+        string baseDirectory = AppContext.BaseDirectory;
+        string path = baseDirectory + DateTime.Today.ToString("yyyy-MM-dd") + "_Orders.csv";
+        sr = new StreamWriter(path);
+        sr.WriteLine($"{kitchen.Name} ({kitchen.KitchenId}) - Run time: {DateTime.Now.ToLongTimeString()} ");
+        sr.WriteLine("");
+        sr.WriteLine("Part Name,Part SKU,Height,Width,Depth,Color,Sq Ft $, Lin Ft $,Per Piece $,# Needed,Part Price,Add On %,Total Part Price");
+      }
+
       defaultColor = Convert.ToInt32(dt.Rows[0]["CabinetColor"]);// dt.Rows[0].Field<int>("CabinetColor");
       wallId = Convert.ToInt32(dt.Rows[0]["WallId"]);
       isIsland = Convert.ToBoolean(dt.Rows[0]["IsIsland"]);
@@ -132,11 +149,14 @@ public class PricingService
             {
               if (dr.HasRows && dr.Read())
               {
+                thisPartColorName = dr.GetString("Name");
                 thisColorMarkup = dr.GetFloat("PercentMarkup");
+                thisColorSquareFoot = dr.GetFloat("ColorPerSquareFoot");
               }
             }
           }
-          subtotal += thisPartCost * (1 + thisColorMarkup / 100);
+          thisTotalPartCost = thisPartCost * (1 + thisColorMarkup / 100);
+          subtotal += thisTotalPartCost;
           subtotalFlat += thisPartCost;
 
           using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
@@ -153,7 +173,7 @@ public class PricingService
               }
             }
           }
-          subtotalPlus = thisPartCost * (1 + thisColorMarkup / 100) * (1 + thisUserMarkup / 100);
+          subtotalPlus = thisTotalPartCost * (1 + thisUserMarkup / 100);
         }
       }
       if (!isIsland)
@@ -161,21 +181,16 @@ public class PricingService
         // price wall color backing around cabinets
 
       }
-      
-      if(refType=="Order")
+
+      if (refType == "Order")
       {
         //var Order = new();
         //Order.SaveOrder(kitchenId, wallOrderNum, userName); 
       }
       else if (refType == "PriceReport")
       {
-        // Update and save the price report
-        string path = "/files/orders/"
-          + DateTime.Today.ToString("yyyy-MM-dd") + ".csv";
-        var sr = new StreamWriter(path);
-        sr.WriteLine($"{kitchen.Name} ({kitchen.KitchenId}) - Run time: {DateTime.Now.ToLongTimeString()} ");
-        sr.WriteLine("");
-        sr.WriteLine("Part Name,Part SKU,Height,Width,Depth,Color,Sq Ft $, Lin Ft $,Per Piece $,# Needed,Part Price,Sq Ft $,Add On $,Add On %,Min Price,Total Part Price");
+        // write out required part(s) to the report file
+        sr.WriteLine($"{thisPartSku},{thisPartHeight},{thisPartWidth},{thisPartDepth},{thisPartColorName},{thisColorSquareFoot},{thisLinearFootCost},{thisPartCost},{thisPartQty},{thisPartCost*thisPartQty},{thisColorMarkup},{GlobalHelpers.Format(thisTotalPartCost)}");
       }
       else
       {
@@ -189,21 +204,14 @@ public class PricingService
       GlobalHelpers.SendErrorEmail("CalcPrice", ex.Message, ex.StackTrace);
       throw;
     }
-
-    return "";
-  }
-}
-
-public static class GlobalHelpers
-{
-  internal static void SendErrorEmail(string method, string errorMessage, string? stackTrace)
-  {
-    using (var client = new SmtpClient("localhost"))
+    finally
     {
-      var message = new MailMessage("donotreply@test.com", "errors@test.com");
-      message.Subject = $"Error in {method}";
-      message.Body = errorMessage + Environment.NewLine + stackTrace;
-      client.Send(message);
+      // clean up
+      if (sr != null)
+      {
+        sr.Close();
+        sr.Dispose();
+      }
     }
   }
 }
