@@ -27,7 +27,7 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
 
   private void SeedUsers(ModelBuilder builder)
   {
-    AppUser user = new ()
+    AppUser user = new()
     {
       Id = ConfigurationSettings.AdminUserId,
       UserName = "admin@test.com",
@@ -60,9 +60,11 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     SeedRoles(builder);
 
     builder.Entity<IdentityUserRole<string>>().HasData(
-        new IdentityUserRole<string>() { 
-          RoleId = ConfigurationSettings.AdminRoleId, 
-          UserId = ConfigurationSettings.AdminUserId }
+        new IdentityUserRole<string>()
+        {
+          RoleId = ConfigurationSettings.AdminRoleId,
+          UserId = ConfigurationSettings.AdminUserId
+        }
         );
   }
 }

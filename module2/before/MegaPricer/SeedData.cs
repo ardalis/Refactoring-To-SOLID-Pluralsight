@@ -28,7 +28,7 @@ public static class SeedData
 
     int order = 1;
     float height = 96.0f; // 8 feet
-    kitchen.Walls.Add(new Wall() { Name = "North wall", WallOrder = order++, BackingColor=1, Height=height, CabinetColor=4 });
+    kitchen.Walls.Add(new Wall() { Name = "North wall", WallOrder = order++, BackingColor = 1, Height = height, CabinetColor = 4 });
     kitchen.Walls.Add(new Wall() { Name = "Northeast wall", WallOrder = order++, BackingColor = 1, Height = height, CabinetColor = 4 });
     kitchen.Walls.Add(new Wall() { Name = "East wall", WallOrder = order++, BackingColor = 1, Height = height, CabinetColor = 4 });
     kitchen.Walls.Add(new Wall() { Name = "South wall", WallOrder = order++, BackingColor = 1, Height = height, CabinetColor = 4 });
@@ -54,12 +54,12 @@ public static class SeedData
 
     dbContext.SaveChanges();
 
-    var cabinet1 = new Cabinet() 
-    { 
+    var cabinet1 = new Cabinet()
+    {
       Width = 36.0f,
       Depth = 12.0f,
       Height = 24.0f,
-      CabinetOrder= 1,
+      CabinetOrder = 1,
       Color = 1,
       TopOffset = 0.0f,
       LeftOffset = 0.0f,
@@ -122,11 +122,11 @@ public static class SeedData
   public static void PopulatePricingColors(ApplicationDbContext dbContext)
   {
     var pricingColor1 = new PricingColor()
-    { 
-       Name = "White",
-       ColorPerSquareFoot = 0.10f,
-       PercentMarkup= 5,
-       WholesalePrice = 0.0f
+    {
+      Name = "White",
+      ColorPerSquareFoot = 0.10f,
+      PercentMarkup = 5,
+      WholesalePrice = 0.0f
     };
     dbContext.PricingColors.Add(pricingColor1);
     dbContext.SaveChanges();
@@ -166,8 +166,8 @@ public static class SeedData
   public static void PopulatePricingSkus(ApplicationDbContext dbContext)
   {
     var pricingSku = new PricingSku()
-    { 
-      SKU= "CAB-1",
+    {
+      SKU = "CAB-1",
       WholesalePrice = 109.99f
     };
     dbContext.PricingSkus.Add(pricingSku);

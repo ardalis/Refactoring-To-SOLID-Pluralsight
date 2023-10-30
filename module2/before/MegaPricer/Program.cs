@@ -1,5 +1,4 @@
-﻿using System;
-using MegaPricer.Data;
+﻿using MegaPricer.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 

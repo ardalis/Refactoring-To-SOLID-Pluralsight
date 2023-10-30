@@ -1,8 +1,6 @@
 ﻿using System.Data;
-using System.IO;
 using MegaPricer.Data;
 using Microsoft.Data.Sqlite;
-using Microsoft.VisualBasic;
 
 namespace MegaPricer.Services;
 
@@ -280,9 +278,9 @@ public class PricingService
 
                   float areaInSf = featureHeight * featureWidth / 144;
                   featureCost = areaInSf * thisColorSquareFoot;
-                  if(featureCost == 0)
+                  if (featureCost == 0)
                   {
-                    featureCost = quantity* wholesalePrice;
+                    featureCost = quantity * wholesalePrice;
                   }
                   thisTotalFeatureCost = featureCost * (1 + thisColorMarkup / 100);
                   subtotal += thisTotalFeatureCost;
