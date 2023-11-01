@@ -1,0 +1,22 @@
+﻿@page
+@using MegaPricer.Data;
+@using MegaPricer.Services;
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome @Context.Session[User.Identity.Name]["CompanyShortName"]</h1> <br/>
+    <a href="GenerateFile">Generate File</a> | 
+    <a href="PlaceOrder">Place Order</a> |
+</div>
+<h2>Kitchen @Model.Kitchen.Name</h2>
+
+@foreach(var wall in Model.Kitchen.Walls)
+{
+    <h3>Wall @wall.Name</h3>
+    <span>Wall Order: @wall.WallOrder</span>
+    <span>Price: @PricingService.CalculatePrice(Model.Kitchen.KitchenId, wall.WallOrder, User.Identity.Name, "")</span>
+}
+
