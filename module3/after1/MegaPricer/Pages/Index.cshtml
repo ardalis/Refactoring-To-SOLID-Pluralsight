@@ -4,6 +4,7 @@
 @model IndexModel
 @{
     ViewData["Title"] = "Home page";
+    var pricingService = new PricingService();
 }
 
 <div class="text-center">
@@ -17,6 +18,6 @@
 {
     <h3>Wall @wall.Name</h3>
     <span>Wall Order: @wall.WallOrder</span>
-    <span>Price: @PricingService.CalculatePrice(Model.Kitchen.KitchenId, wall.WallOrder, User.Identity.Name, "")</span>
+    <span>Price: @pricingService.CalculatePrice(Model.Kitchen.KitchenId, wall.WallOrder, User.Identity.Name, "").Value</span>
 }
 
