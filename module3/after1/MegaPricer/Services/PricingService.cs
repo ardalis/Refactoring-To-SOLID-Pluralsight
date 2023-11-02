@@ -13,26 +13,16 @@ public class PricingService
     Kitchen kitchen = new Kitchen();
     Order order = new Order();
     Subtotals subtotals = new();
-    float thisPartWidth = 0;
-    float thisPartDepth = 0;
-    float thisPartHeight = 0;
-    decimal thisPartCost = 0;
     float thisSectionWidth = 0;
-    string thisPartSku = "";
     float bbHeight = 0;
     float bbDepth = 0;
     int defaultColor = 0;
-    int thisPartColor = 0;
-    string thisPartColorName = "";
-    decimal thisColorMarkup = 0;
-    decimal thisColorSquareFoot = 0;
-    decimal thisLinearFootCost = 0;
     decimal thisUserMarkup = 0;
-    int thisPartQty = 0;
     decimal thisTotalPartCost = 0;
     bool isIsland = false;
     int wallId = 0;
     float wallHeight = 0;
+    Part thisPart = new();
     DataTable dt = new DataTable();
     DataTable dt2 = new DataTable();
     DataTable dt3 = new DataTable();
@@ -53,25 +43,7 @@ public class PricingService
       kitchen.GetCustomerKitchen(priceRequest.KitchenId, priceRequest.UserName);
       bbHeight = kitchen.BaseHeight;
       bbDepth = kitchen.BaseDepth;
-      using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
-      {
-        var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT * FROM Walls WHERE KitchenId = @kitchenId AND WallOrder = @wallOrderNum";
-        cmd.Parameters.AddWithValue("@kitchenId", priceRequest.KitchenId);
-        cmd.Parameters.AddWithValue("@wallOrderNum", priceRequest.WallOrderNum);
-        conn.Open();
-        using (SqliteDataReader dr = cmd.ExecuteReader())
-        {
-          do
-          {
-            dt = new DataTable();
-            dt.BeginLoadData();
-            dt.Load(dr);
-            dt.EndLoadData();
-
-          } while (!dr.IsClosed && dr.NextResult());
-        }
-      }
+      dt = LoadWallsDataTable(priceRequest);
 
       if (dt.Rows.Count == 0)
       {
@@ -90,22 +62,7 @@ public class PricingService
       }
       else if (priceRequest.RefType == "Order")
       {
-        // create a new order
-        order.KitchenId = priceRequest.KitchenId;
-        using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
-        {
-          var cmd = conn.CreateCommand();
-          cmd.CommandText = "INSERT INTO ORDERS (KitchenId,OrderDate,OrderStatus,OrderType) VALUES (@kitchenId,@orderDate,@orderStatus,@orderType)";
-          cmd.Parameters.AddWithValue("@kitchenId", order.KitchenId);
-          cmd.Parameters.AddWithValue("@orderDate", order.OrderDate);
-          cmd.Parameters.AddWithValue("@orderStatus", order.OrderStatus);
-          cmd.Parameters.AddWithValue("@orderType", order.OrderType);
-          conn.Open();
-          cmd.ExecuteNonQuery();
-          var cmd2 = conn.CreateCommand();
-          cmd2.CommandText = "SELECT last_insert_rowid();";
-          order.OrderId = Convert.ToInt32(cmd2.ExecuteScalar());
-        }
+        CreateNewOrder(priceRequest, order);
       }
 
       defaultColor = Convert.ToInt32(dt.Rows[0]["CabinetColor"]);// dt.Rows[0].Field<int>("CabinetColor");
@@ -113,72 +70,45 @@ public class PricingService
       isIsland = Convert.ToBoolean(dt.Rows[0]["IsIsland"]);
       wallHeight = Convert.ToSingle(dt.Rows[0]["Height"]);
 
-      using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
-      {
-        var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT * FROM Cabinets WHERE WallId = @wallId ORDER BY CabinetOrder";
-        cmd.Parameters.AddWithValue("@wallId", wallId);
-        conn.Open();
-        using (SqliteDataReader dr = cmd.ExecuteReader())
-        {
-          do
-          {
-            dt2.BeginLoadData();
-            dt2.Load(dr);
-            dt2.EndLoadData();
-
-          } while (!dr.IsClosed && dr.NextResult());
-        }
-      }
+      LoadCabinetsDataTable(wallId, dt2);
 
       float totalCabinetHeight = 0;
       foreach (DataRow row in dt2.Rows) // each cabinet
       {
         int cabinetId = Convert.ToInt32(row["CabinetId"]);
-        thisPartWidth = Convert.ToSingle(row["Width"]); // row.Field<float>("Width");
-        thisPartDepth = Convert.ToSingle(row["Depth"]); // row.Field<float>("Depth");
-        thisPartHeight = Convert.ToSingle(row["Height"]); // row.Field<float>("Height");
-        thisPartColor = Convert.ToInt32(row["Color"]); // row.Field<int>("Color");
-        thisPartSku = row.Field<string>("SKU");
-        thisPartCost = 0;
-        thisSectionWidth = 0;
-        totalCabinetHeight += thisPartHeight;
-
-        if (!String.IsNullOrEmpty(thisPartSku))
+        thisPart = new Part()
         {
-          using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
-          {
-            var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT * FROM PricingSkus WHERE SKU = @sku";
-            cmd.Parameters.AddWithValue("@sku", thisPartSku);
-            conn.Open();
-            using (SqliteDataReader dr = cmd.ExecuteReader())
-            {
-              if (dr.HasRows && dr.Read())
-              {
-                thisPartCost = dr.GetDecimal("WholesalePrice");
-              }
-            }
-          }
+          Width = Convert.ToSingle(row["Width"]),
+          Depth = Convert.ToSingle(row["Depth"]),
+          Height = Convert.ToSingle(row["Height"]),
+          ColorId = Convert.ToInt32(row["Color"]),
+          SKU = row.Field<string>("SKU")
+        };
+        thisSectionWidth = 0;
+        totalCabinetHeight += thisPart.Height;
+
+        if (!String.IsNullOrEmpty(thisPart.SKU))
+        {
+          thisPart.Cost = GetCostForSku(thisPart.SKU);
           using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
           {
             var cmd = conn.CreateCommand();
             cmd.CommandText = "SELECT * FROM PricingColors WHERE PricingColorId = @pricingColorId";
-            cmd.Parameters.AddWithValue("@pricingColorId", thisPartColor);
+            cmd.Parameters.AddWithValue("@pricingColorId", thisPart.ColorId);
             conn.Open();
             using (SqliteDataReader dr = cmd.ExecuteReader())
             {
               if (dr.HasRows && dr.Read())
               {
-                thisPartColorName = dr.GetString("Name");
-                thisColorMarkup = dr.GetDecimal("PercentMarkup");
-                thisColorSquareFoot = dr.GetDecimal("ColorPerSquareFoot");
+                thisPart.ColorName = dr.GetString("Name");
+                thisPart.ColorMarkup = dr.GetDecimal("PercentMarkup");
+                thisPart.ColorPerSquareFootCost = dr.GetDecimal("ColorPerSquareFoot");
               }
             }
           }
-          thisTotalPartCost = thisPartCost * (1 + thisColorMarkup / 100);
+          thisTotalPartCost = thisPart.Cost * (1 + thisPart.ColorMarkup / 100);
           subtotals.Value += thisTotalPartCost;
-          subtotals.Flat += thisPartCost;
+          subtotals.Flat += thisPart.Cost;
 
           using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
           {
@@ -205,10 +135,10 @@ public class PricingService
             var cmd = conn.CreateCommand();
             cmd.CommandText = "INSERT INTO ORDERITEM (OrderId,SKU,Quantity,BasePrice,Markup,UserMarkup) VALUES (@orderId,@sku,@quantity,@basePrice,@markup,@userMarkup)";
             cmd.Parameters.AddWithValue("@orderId", order.OrderId);
-            cmd.Parameters.AddWithValue("@sku", thisPartSku);
-            cmd.Parameters.AddWithValue("@quantity", thisPartQty == 0 ? 1 : thisPartQty);
-            cmd.Parameters.AddWithValue("@basePrice", GlobalHelpers.Format(thisPartCost));
-            cmd.Parameters.AddWithValue("@markup", GlobalHelpers.Format(thisTotalPartCost - thisPartCost));
+            cmd.Parameters.AddWithValue("@sku", thisPart.SKU);
+            cmd.Parameters.AddWithValue("@quantity", thisPart.Quantity == 0 ? 1 : thisPart.Quantity);
+            cmd.Parameters.AddWithValue("@basePrice", GlobalHelpers.Format(thisPart.Cost));
+            cmd.Parameters.AddWithValue("@markup", GlobalHelpers.Format(thisTotalPartCost - thisPart.Cost));
             cmd.Parameters.AddWithValue("@userMarkup", GlobalHelpers.Format(thisTotalPartCost * (1 + thisUserMarkup / 100) - thisTotalPartCost));
             conn.Open();
             cmd.ExecuteNonQuery();
@@ -217,7 +147,7 @@ public class PricingService
         else if (priceRequest.RefType == "PriceReport")
         {
           // write out required part(s) to the report file
-          sr.WriteLine($"{thisPartSku},{thisPartHeight},{thisPartWidth},{thisPartDepth},{thisPartColorName},{thisColorSquareFoot},{thisLinearFootCost},{thisPartCost},{thisPartQty},{thisPartCost * thisPartQty},{thisColorMarkup},{GlobalHelpers.Format(thisTotalPartCost)}");
+          sr.WriteLine($"{thisPart.SKU},{thisPart.Height},{thisPart.Width},{thisPart.Depth},{thisPart.ColorName},{thisPart.ColorPerSquareFootCost},{thisPart.LinearFootCost},{thisPart.Cost},{thisPart.Quantity},{thisPart.Cost * thisPart.Quantity},{thisPart.ColorMarkup},{GlobalHelpers.Format(thisTotalPartCost)}");
         }
         else
         {
@@ -246,42 +176,43 @@ public class PricingService
           conn.Close();
           foreach (DataRow featureRow in dt3.Rows)
           {
-            int featureId = Convert.ToInt32(featureRow["FeatureId"]);
-            int colorId = Convert.ToInt32(featureRow["Color"]);
-            string featureSKU = Convert.ToString(featureRow["SKU"]);
-            int quantity = Convert.ToInt32(featureRow["Quantity"]);
-            float featureHeight = Convert.ToSingle(featureRow["Height"]);
-            float featureWidth = Convert.ToSingle(featureRow["Width"]);
-            decimal featureCost = 0;
+            var thisFeature = new Feature()
+            {
+              FeatureId = Convert.ToInt32(featureRow["FeatureId"]),
+              ColorId = Convert.ToInt32(featureRow["Color"]),
+              SKU = Convert.ToString(featureRow["SKU"]),
+              Quantity = Convert.ToInt32(featureRow["Quantity"]),
+              Height = Convert.ToSingle(featureRow["Height"]),
+              Width = Convert.ToSingle(featureRow["Width"]),
+            };
             decimal thisTotalFeatureCost = 0;
-            string featureColorName = "";
-            decimal wholesalePrice = 0;
 
-            if (colorId > 0)
+            if (thisFeature.ColorId > 0)
             {
               cmd = conn.CreateCommand();
               cmd.CommandText = "SELECT * FROM PricingColors WHERE PricingColorId = @pricingColorId";
-              cmd.Parameters.AddWithValue("@pricingColorId", colorId);
+              cmd.Parameters.AddWithValue("@pricingColorId", thisFeature.ColorId);
               conn.Open();
               using (SqliteDataReader dr = cmd.ExecuteReader())
               {
                 if (dr.HasRows && dr.Read())
                 {
-                  featureColorName = dr.GetString("Name");
-                  float colorMarkup = dr.GetFloat("PercentMarkup");
-                  thisColorSquareFoot = dr.GetDecimal("ColorPerSquareFoot");
-                  wholesalePrice = dr.GetDecimal("WholesalePrice");
+                  thisFeature.ColorName = dr.GetString("Name");
+                  thisFeature.ColorMarkup = dr.GetDecimal("PercentMarkup");
+                  thisFeature.ColorPerSquareFootCost = dr.GetDecimal("ColorPerSquareFoot");
+                  thisFeature.WholesalePrice = dr.GetDecimal("WholesalePrice");
 
-                  decimal areaInSf = (decimal)(featureHeight * featureWidth / 144);
-                  featureCost = areaInSf * thisColorSquareFoot;
-                  if (featureCost == 0)
+                  decimal areaInSf = thisFeature.AreaInSquareFeet;
+                  thisFeature.FlatCost = areaInSf * thisFeature.ColorPerSquareFootCost;
+                  if (thisFeature.FlatCost == 0)
                   {
-                    featureCost = quantity * wholesalePrice;
+                    thisFeature.FlatCost = thisFeature.Quantity * thisFeature.WholesalePrice;
                   }
-                  thisTotalFeatureCost = featureCost * (1 + thisColorMarkup / 100);
-                  subtotals.Value += thisTotalFeatureCost;
-                  subtotals.Flat += featureCost;
-                  subtotals.Plus += thisTotalFeatureCost * (1 + thisUserMarkup / 100);
+                  thisFeature.MarkedUpCost = thisFeature.FlatCost * (1 + thisFeature.ColorMarkup / 100);
+                  thisFeature.UserMarkedUpCost = thisFeature.MarkedUpCost * (1 + thisUserMarkup / 100);
+                  subtotals.Value += thisFeature.MarkedUpCost;
+                  subtotals.Flat += thisFeature.FlatCost;
+                  subtotals.Plus += thisFeature.UserMarkedUpCost;
                 }
               }
               if (priceRequest.RefType == "Order")
@@ -292,11 +223,11 @@ public class PricingService
                   cmd = conn2.CreateCommand();
                   cmd.CommandText = "INSERT INTO ORDERITEM (OrderId,SKU,Quantity,BasePrice,Markup,UserMarkup) VALUES (@orderId,@sku,@quantity,@basePrice,@markup,@userMarkup)";
                   cmd.Parameters.AddWithValue("@orderId", order.OrderId);
-                  cmd.Parameters.AddWithValue("@sku", featureSKU);
-                  cmd.Parameters.AddWithValue("@quantity", quantity == 0 ? 1 : quantity);
-                  cmd.Parameters.AddWithValue("@basePrice", GlobalHelpers.Format(featureCost));
-                  cmd.Parameters.AddWithValue("@markup", GlobalHelpers.Format(thisTotalFeatureCost - featureCost));
-                  cmd.Parameters.AddWithValue("@userMarkup", GlobalHelpers.Format(thisTotalFeatureCost * (1 + thisUserMarkup / 100) - thisTotalFeatureCost));
+                  cmd.Parameters.AddWithValue("@sku", thisFeature.SKU);
+                  cmd.Parameters.AddWithValue("@quantity", thisFeature.Quantity == 0 ? 1 : thisFeature.Quantity);
+                  cmd.Parameters.AddWithValue("@basePrice", GlobalHelpers.Format(thisFeature.FlatCost));
+                  cmd.Parameters.AddWithValue("@markup", GlobalHelpers.Format(thisFeature.MarkedUpCost - thisFeature.FlatCost));
+                  cmd.Parameters.AddWithValue("@userMarkup", GlobalHelpers.Format(thisFeature.UserMarkedUpCost - thisFeature.MarkedUpCost));
                   conn2.Open();
                   cmd.ExecuteNonQuery();
                 }
@@ -305,7 +236,7 @@ public class PricingService
               else if (priceRequest.RefType == "PriceReport")
               {
                 // write out required part(s) to the report file
-                sr.WriteLine($"{featureSKU},{featureHeight},{featureWidth},{featureColorName},{thisColorSquareFoot},{thisLinearFootCost},{wholesalePrice},{quantity},{wholesalePrice * quantity},{thisColorMarkup},{GlobalHelpers.Format(thisTotalFeatureCost)}");
+                sr.WriteLine($"{thisFeature.SKU},{thisFeature.Height},{thisFeature.Width},{thisFeature.ColorName},{thisFeature.ColorPerSquareFootCost},{thisFeature.LinearFootCost},{thisFeature.WholesalePrice},{thisFeature.Quantity},{thisFeature.WholesalePrice * thisFeature.Quantity},{thisFeature.ColorMarkup},{GlobalHelpers.Format(thisFeature.MarkedUpCost)}");
               }
 
             }
@@ -320,7 +251,7 @@ public class PricingService
         if (remainingWallHeight > 0)
         {
           // get width from last cabinet
-          float width = thisPartWidth;
+          float width = thisPart.Width;
           float area = remainingWallHeight * width;
           using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
           {
@@ -332,15 +263,15 @@ public class PricingService
             {
               if (dr.HasRows && dr.Read())
               {
-                thisPartSku = "PAINT";
-                thisPartColorName = dr.GetString("Name");
-                thisColorMarkup = dr.GetDecimal("PercentMarkup");
-                thisColorSquareFoot = dr.GetDecimal("ColorPerSquareFoot");
+                thisPart.SKU = "PAINT";
+                thisPart.ColorName = dr.GetString("Name");
+                thisPart.ColorMarkup = dr.GetDecimal("PercentMarkup");
+                thisPart.ColorPerSquareFootCost = dr.GetDecimal("ColorPerSquareFoot");
 
-                thisPartCost = (decimal)area * thisColorSquareFoot / 144;
-                thisTotalPartCost = thisPartCost * (1 + thisColorMarkup / 100);
+                thisPart.Cost = (decimal)area * thisPart.ColorPerSquareFootCost / 144;
+                thisTotalPartCost = thisPart.Cost * (1 + thisPart.ColorMarkup / 100);
                 subtotals.Value += thisTotalPartCost;
-                subtotals.Flat += thisPartCost;
+                subtotals.Flat += thisPart.Cost;
                 subtotals.Plus += thisTotalPartCost * (1 + thisUserMarkup / 100);
               }
             }
@@ -353,10 +284,10 @@ public class PricingService
               var cmd = conn.CreateCommand();
               cmd.CommandText = "INSERT INTO ORDERITEM (OrderId,SKU,Quantity,BasePrice,Markup,UserMarkup) VALUES (@orderId,@sku,@quantity,@basePrice,@markup,@userMarkup)";
               cmd.Parameters.AddWithValue("@orderId", order.OrderId);
-              cmd.Parameters.AddWithValue("@sku", thisPartSku);
-              cmd.Parameters.AddWithValue("@quantity", thisPartQty == 0 ? 1 : thisPartQty);
-              cmd.Parameters.AddWithValue("@basePrice", GlobalHelpers.Format(thisPartCost));
-              cmd.Parameters.AddWithValue("@markup", GlobalHelpers.Format(thisTotalPartCost - thisPartCost));
+              cmd.Parameters.AddWithValue("@sku", thisPart.SKU);
+              cmd.Parameters.AddWithValue("@quantity", thisPart.Quantity == 0 ? 1 : thisPart.Quantity);
+              cmd.Parameters.AddWithValue("@basePrice", GlobalHelpers.Format(thisPart.Cost));
+              cmd.Parameters.AddWithValue("@markup", GlobalHelpers.Format(thisTotalPartCost - thisPart.Cost));
               cmd.Parameters.AddWithValue("@userMarkup", GlobalHelpers.Format(thisTotalPartCost * (1 + thisUserMarkup / 100) - thisTotalPartCost));
               conn.Open();
               cmd.ExecuteNonQuery();
@@ -366,7 +297,7 @@ public class PricingService
           else if (priceRequest.RefType == "PriceReport")
           {
             // write out required part(s) to the report file
-            sr.WriteLine($"{thisPartSku},{remainingWallHeight},{width},{thisPartColorName},{thisColorSquareFoot},{thisLinearFootCost},{thisPartCost},{thisPartQty},{thisPartCost * thisPartQty},{thisColorMarkup},{GlobalHelpers.Format(thisTotalPartCost)}");
+            sr.WriteLine($"{thisPart.SKU},{remainingWallHeight},{width},{thisPart.ColorName},{thisPart.ColorPerSquareFootCost},{thisPart.LinearFootCost},{thisPart.Cost},{thisPart.Quantity},{thisPart.Cost * thisPart.Quantity},{thisPart.ColorMarkup},{GlobalHelpers.Format(thisTotalPartCost)}");
           }
         }
       }
@@ -388,5 +319,93 @@ public class PricingService
         sr.Dispose();
       }
     }
+  }
+
+  private static decimal GetCostForSku(string thisPartSku)
+  {
+    decimal thisPartCost = 0;
+    using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
+    {
+      var cmd = conn.CreateCommand();
+      cmd.CommandText = "SELECT * FROM PricingSkus WHERE SKU = @sku";
+      cmd.Parameters.AddWithValue("@sku", thisPartSku);
+      conn.Open();
+      using (SqliteDataReader dr = cmd.ExecuteReader())
+      {
+        if (dr.HasRows && dr.Read())
+        {
+          thisPartCost = dr.GetDecimal("WholesalePrice");
+        }
+      }
+    }
+
+    return thisPartCost;
+  }
+
+  private static void LoadCabinetsDataTable(int wallId, DataTable dt2)
+  {
+    using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
+    {
+      var cmd = conn.CreateCommand();
+      cmd.CommandText = "SELECT * FROM Cabinets WHERE WallId = @wallId ORDER BY CabinetOrder";
+      cmd.Parameters.AddWithValue("@wallId", wallId);
+      conn.Open();
+      using (SqliteDataReader dr = cmd.ExecuteReader())
+      {
+        do
+        {
+          dt2.BeginLoadData();
+          dt2.Load(dr);
+          dt2.EndLoadData();
+
+        } while (!dr.IsClosed && dr.NextResult());
+      }
+    }
+  }
+
+  private static void CreateNewOrder(PriceRequest priceRequest, Order order)
+  {
+    // create a new order
+    order.KitchenId = priceRequest.KitchenId;
+    using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
+    {
+      var cmd = conn.CreateCommand();
+      cmd.CommandText = "INSERT INTO ORDERS (KitchenId,OrderDate,OrderStatus,OrderType) VALUES (@kitchenId,@orderDate,@orderStatus,@orderType)";
+      cmd.Parameters.AddWithValue("@kitchenId", order.KitchenId);
+      cmd.Parameters.AddWithValue("@orderDate", order.OrderDate);
+      cmd.Parameters.AddWithValue("@orderStatus", order.OrderStatus);
+      cmd.Parameters.AddWithValue("@orderType", order.OrderType);
+      conn.Open();
+      cmd.ExecuteNonQuery();
+      var cmd2 = conn.CreateCommand();
+      cmd2.CommandText = "SELECT last_insert_rowid();";
+      order.OrderId = Convert.ToInt32(cmd2.ExecuteScalar());
+    }
+  }
+
+  private static DataTable LoadWallsDataTable(PriceRequest priceRequest)
+  {
+    DataTable dt;
+    using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
+    {
+      var cmd = conn.CreateCommand();
+      cmd.CommandText = "SELECT * FROM Walls WHERE KitchenId = @kitchenId AND WallOrder = @wallOrderNum";
+      cmd.Parameters.AddWithValue("@kitchenId", priceRequest.KitchenId);
+      cmd.Parameters.AddWithValue("@wallOrderNum", priceRequest.WallOrderNum);
+      conn.Open();
+      using (SqliteDataReader dr = cmd.ExecuteReader())
+      {
+        do
+        {
+          dt = new DataTable();
+          dt.BeginLoadData();
+          dt.Load(dr);
+          dt.EndLoadData();
+
+        } while (!dr.IsClosed && dr.NextResult());
+      }
+    }
+
+    return dt;
   }
 }
