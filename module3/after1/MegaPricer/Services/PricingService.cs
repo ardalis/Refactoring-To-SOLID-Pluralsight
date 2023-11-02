@@ -4,27 +4,15 @@ using MegaPricer.Data;
 using Microsoft.Data.Sqlite;
 
 namespace MegaPricer.Services;
-
-public record PriceGroup(decimal Subtotal, decimal SubtotalFlat, decimal SubtotalPlus)
-{
-  public override string ToString()
-  {
-    return String.Format("{0:C2}|{1:C2}|{2:C2}", Subtotal, SubtotalFlat, SubtotalPlus);
-  }
-}
 public class PricingService
 {
-  public Result<PriceGroup> CalculatePrice(int kitchenId, int wallOrderNum, string userName, string refType)
+  public Result<PriceGroup> CalculatePrice(PriceRequest priceRequest)
   {
-    if (Context.Session[userName]["PricingOff"] == "Y") return new PriceGroup(0,0,0);
+    if (Context.Session[priceRequest.UserName]["PricingOff"] == "Y") return new PriceGroup(0,0,0);
 
     Kitchen kitchen = new Kitchen();
     Order order = new Order();
-    decimal subtotal = 0;
-    decimal subtotalFlat = 0;
-    decimal subtotalPlus = 0;
-    float grandtotal = 0;
-    float grandtotalFlat = 0;
+    Subtotals subtotals = new();
     float thisPartWidth = 0;
     float thisPartDepth = 0;
     float thisPartHeight = 0;
@@ -50,27 +38,27 @@ public class PricingService
     DataTable dt3 = new DataTable();
     StreamWriter sr = null;
 
-    Context.Session[userName]["WallWeight"] = 0;
+    Context.Session[priceRequest.UserName]["WallWeight"] = 0;
 
     try
     {
-      if (wallOrderNum == 0)
+      if (priceRequest.WallOrderNum == 0)
       {
         return Result.Error("Session expired: Log in again.");
       }
-      if (kitchenId <= 0)
+      if (priceRequest.KitchenId <= 0)
       {
         return Result.Invalid(new ValidationError("invalid kitchenId"));
       }
-      kitchen.GetCustomerKitchen(kitchenId, userName);
+      kitchen.GetCustomerKitchen(priceRequest.KitchenId, priceRequest.UserName);
       bbHeight = kitchen.BaseHeight;
       bbDepth = kitchen.BaseDepth;
       using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
       {
         var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT * FROM Walls WHERE KitchenId = @kitchenId AND WallOrder = @wallOrderNum";
-        cmd.Parameters.AddWithValue("@kitchenId", kitchenId);
-        cmd.Parameters.AddWithValue("@wallOrderNum", wallOrderNum);
+        cmd.Parameters.AddWithValue("@kitchenId", priceRequest.KitchenId);
+        cmd.Parameters.AddWithValue("@wallOrderNum", priceRequest.WallOrderNum);
         conn.Open();
         using (SqliteDataReader dr = cmd.ExecuteReader())
         {
@@ -90,7 +78,7 @@ public class PricingService
         return Result.Invalid(new ValidationError("invalid wallOrderNum"));
       }
 
-      if (refType == "PriceReport")
+      if (priceRequest.RefType == "PriceReport")
       {
         // Start writing to the report file
         string baseDirectory = AppContext.BaseDirectory;
@@ -100,10 +88,10 @@ public class PricingService
         sr.WriteLine("");
         sr.WriteLine("Part Name,Part SKU,Height,Width,Depth,Color,Sq Ft $, Lin Ft $,Per Piece $,# Needed,Part Price,Add On %,Total Part Price");
       }
-      else if (refType == "Order")
+      else if (priceRequest.RefType == "Order")
       {
         // create a new order
-        order.KitchenId = kitchenId;
+        order.KitchenId = priceRequest.KitchenId;
         using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
         {
           var cmd = conn.CreateCommand();
@@ -189,14 +177,14 @@ public class PricingService
             }
           }
           thisTotalPartCost = thisPartCost * (1 + thisColorMarkup / 100);
-          subtotal += thisTotalPartCost;
-          subtotalFlat += thisPartCost;
+          subtotals.Value += thisTotalPartCost;
+          subtotals.Flat += thisPartCost;
 
           using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
           {
             var cmd = conn.CreateCommand();
             cmd.CommandText = "SELECT * FROM UserMarkups WHERE UserName = @userName";
-            cmd.Parameters.AddWithValue("@userName", userName);
+            cmd.Parameters.AddWithValue("@userName", priceRequest.UserName);
             conn.Open();
             using (SqliteDataReader dr = cmd.ExecuteReader())
             {
@@ -206,10 +194,10 @@ public class PricingService
               }
             }
           }
-          subtotalPlus = thisTotalPartCost * (1 + thisUserMarkup / 100);
+          subtotals.Plus += thisTotalPartCost * (1 + thisUserMarkup / 100);
         }
 
-        if (refType == "Order")
+        if (priceRequest.RefType == "Order")
         {
           // add this part to the order
           using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
@@ -226,7 +214,7 @@ public class PricingService
             cmd.ExecuteNonQuery();
           }
         }
-        else if (refType == "PriceReport")
+        else if (priceRequest.RefType == "PriceReport")
         {
           // write out required part(s) to the report file
           sr.WriteLine($"{thisPartSku},{thisPartHeight},{thisPartWidth},{thisPartDepth},{thisPartColorName},{thisColorSquareFoot},{thisLinearFootCost},{thisPartCost},{thisPartQty},{thisPartCost * thisPartQty},{thisColorMarkup},{GlobalHelpers.Format(thisTotalPartCost)}");
@@ -291,12 +279,12 @@ public class PricingService
                     featureCost = quantity * wholesalePrice;
                   }
                   thisTotalFeatureCost = featureCost * (1 + thisColorMarkup / 100);
-                  subtotal += thisTotalFeatureCost;
-                  subtotalFlat += featureCost;
-                  subtotalPlus += thisTotalFeatureCost * (1 + thisUserMarkup / 100);
+                  subtotals.Value += thisTotalFeatureCost;
+                  subtotals.Flat += featureCost;
+                  subtotals.Plus += thisTotalFeatureCost * (1 + thisUserMarkup / 100);
                 }
               }
-              if (refType == "Order")
+              if (priceRequest.RefType == "Order")
               {
                 // add this part to the order
                 using (var conn2 = new SqliteConnection(ConfigurationSettings.ConnectionString))
@@ -314,7 +302,7 @@ public class PricingService
                 }
 
               }
-              else if (refType == "PriceReport")
+              else if (priceRequest.RefType == "PriceReport")
               {
                 // write out required part(s) to the report file
                 sr.WriteLine($"{featureSKU},{featureHeight},{featureWidth},{featureColorName},{thisColorSquareFoot},{thisLinearFootCost},{wholesalePrice},{quantity},{wholesalePrice * quantity},{thisColorMarkup},{GlobalHelpers.Format(thisTotalFeatureCost)}");
@@ -351,13 +339,13 @@ public class PricingService
 
                 thisPartCost = (decimal)area * thisColorSquareFoot / 144;
                 thisTotalPartCost = thisPartCost * (1 + thisColorMarkup / 100);
-                subtotal += thisTotalPartCost;
-                subtotalFlat += thisPartCost;
-                subtotalPlus += thisTotalPartCost * (1 + thisUserMarkup / 100);
+                subtotals.Value += thisTotalPartCost;
+                subtotals.Flat += thisPartCost;
+                subtotals.Plus += thisTotalPartCost * (1 + thisUserMarkup / 100);
               }
             }
           }
-          if (refType == "Order")
+          if (priceRequest.RefType == "Order")
           {
             // add this part to the order
             using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
@@ -375,7 +363,7 @@ public class PricingService
             }
 
           }
-          else if (refType == "PriceReport")
+          else if (priceRequest.RefType == "PriceReport")
           {
             // write out required part(s) to the report file
             sr.WriteLine($"{thisPartSku},{remainingWallHeight},{width},{thisPartColorName},{thisColorSquareFoot},{thisLinearFootCost},{thisPartCost},{thisPartQty},{thisPartCost * thisPartQty},{thisColorMarkup},{GlobalHelpers.Format(thisTotalPartCost)}");
@@ -384,7 +372,7 @@ public class PricingService
       }
 
 
-      return new PriceGroup(subtotal, subtotalFlat, subtotalPlus);
+      return new PriceGroup(subtotals.Value, subtotals.Flat, subtotals.Plus);
     }
     catch (Exception ex)
     {

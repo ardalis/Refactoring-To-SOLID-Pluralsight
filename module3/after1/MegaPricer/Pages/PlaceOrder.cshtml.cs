@@ -32,6 +32,13 @@ public class PlaceOrderModel : PageModel
     }
 
     string userName = User.Identity.Name;
-    new PricingService().CalculatePrice(1, 1, userName, "Order");
+    var priceRequest = new PriceRequest
+    {
+      KitchenId = 1,
+      WallOrderNum = 1,
+      UserName = userName,
+      RefType = "Order"
+    };
+    new PricingService().CalculatePrice(priceRequest);
   }
 }

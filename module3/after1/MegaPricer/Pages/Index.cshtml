@@ -16,8 +16,15 @@
 
 @foreach(var wall in Model.Kitchen.Walls)
 {
+    var priceRequest = new PriceRequest
+    {
+        KitchenId = Model.Kitchen.KitchenId,
+        WallOrderNum =wall.WallOrder,
+        UserName = User.Identity.Name
+    };
+    new PricingService().CalculatePrice(priceRequest);
     <h3>Wall @wall.Name</h3>
     <span>Wall Order: @wall.WallOrder</span>
-    <span>Price: @pricingService.CalculatePrice(Model.Kitchen.KitchenId, wall.WallOrder, User.Identity.Name, "").Value</span>
+    <span>Price: @pricingService.CalculatePrice(priceRequest).Value</span>
 }
 

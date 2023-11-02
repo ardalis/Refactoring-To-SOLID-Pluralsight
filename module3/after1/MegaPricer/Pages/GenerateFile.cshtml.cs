@@ -32,6 +32,13 @@ public class GenerateFileModel : PageModel
     }
 
     string userName = User.Identity.Name;
-    new PricingService().CalculatePrice(1, 1, userName, "PriceReport");
+    var priceRequest = new PriceRequest
+    {
+      KitchenId = 1,
+      WallOrderNum = 1,
+      UserName = userName,
+      RefType = "PriceReport"
+    };
+    new PricingService().CalculatePrice(priceRequest);
   }
 }
