@@ -43,7 +43,5 @@ public class IndexModel : PageModel
         .ThenInclude(c => c.Features)
         .First();
     if (kitchen != null) { Kitchen = kitchen; }
-
-    //Price = PricingService.CalculatePrice(kitchen.KitchenId, 1, User.Identity.Name, "");
   }
 }

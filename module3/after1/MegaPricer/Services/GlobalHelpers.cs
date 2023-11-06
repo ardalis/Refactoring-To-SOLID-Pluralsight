@@ -19,4 +19,8 @@ public static class GlobalHelpers
   {
     return (decimal)Math.Round(value, 2);
   }
+  internal static decimal Format(decimal value)
+  {
+    return Math.Round(value, 2);
+  }
 }
