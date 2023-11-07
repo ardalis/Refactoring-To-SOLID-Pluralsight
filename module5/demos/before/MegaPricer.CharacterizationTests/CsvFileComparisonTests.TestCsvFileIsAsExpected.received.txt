@@ -1,0 +1,8 @@
+﻿
+Part Name,Part SKU,Height,Width,Depth,Color,Sq Ft $, Lin Ft $,Per Piece $,# Needed,Part Price,Add On %,Total Part Price
+CAB-1,24,36,12,White,0.1,0,109.99,0,0,5,115.49
+GLSHLF-1,0.25,23,Glass,9.9,0,0,1,0,5,0.42
+DR-1,23.5,17.5,White,0.1,0,0,1,0,5,0.3
+DR-1,23.5,17.5,White,0.1,0,0,1,0,5,0.3
+BR-KNB,0,0,Brass,0,0,2,2,4,5,4.2
+PAINT,72,36,White Cabinet,0.15,0,2.7,0,0,15,4.11
