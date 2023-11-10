@@ -1,5 +1,4 @@
 ﻿using System.Data;
-using System.Xml.Linq;
 using Ardalis.Result;
 using MegaPricer.Data;
 using Microsoft.Data.Sqlite;
@@ -11,14 +10,17 @@ public class PricingService : IPricingService
   private readonly IGetUserMarkup _getUserMarkupService;
   private readonly IKitchenDataService _kitchenDataService;
   private readonly IWallDataService _wallDataService;
+  private readonly ICabinetDataService _cabinetDataService;
 
   public PricingService(IGetUserMarkup getUserMarkupService,
     IKitchenDataService kitchenDataService,
-    IWallDataService wallDataService)
+    IWallDataService wallDataService,
+    ICabinetDataService cabinetDataService)
   {
     _getUserMarkupService = getUserMarkupService;
     _kitchenDataService = kitchenDataService;
     _wallDataService = wallDataService;
+    _cabinetDataService = cabinetDataService;
   }
 
   public Result<PriceGroup> CalculatePrice(PriceRequest priceRequest,
@@ -40,33 +42,24 @@ public class PricingService : IPricingService
       .GetKitchenByIdAndCustomer(priceRequest.kitchenId, priceRequest.userName);
 
     var wallResult = _wallDataService.GetWall(priceRequest.kitchenId, priceRequest.wallOrderNum);
-    if(wallResult.Status == ResultStatus.Invalid)
+    if (wallResult.Status == ResultStatus.Invalid)
     {
       return Result.Invalid(wallResult.ValidationErrors);
     }
     Wall thisWall = wallResult.Value;
     priceCalculationStrategy.Create(kitchen);
 
-    DataTable cabinetsDataTable = LoadCabinetsDataTable(thisWall.WallId);
-
-    float totalCabinetHeight = 0;
-    Part thisPart = new();
-    foreach (DataRow row in cabinetsDataTable.Rows) // each cabinet
+    var cabinets = _cabinetDataService.ListCabinetsForWall(thisWall.WallId);
+    float totalCabinetHeight = cabinets.Sum(c => c.Height);
+    Part lastPart = new();
+    foreach (Part thisPart in cabinets)
     {
-      int cabinetId = Convert.ToInt32(row["CabinetId"]);
-      thisPart.Width = Convert.ToSingle(row["Width"]); // row.Field<float>("Width");
-      thisPart.Depth = Convert.ToSingle(row["Depth"]); // row.Field<float>("Depth");
-      thisPart.Height = Convert.ToSingle(row["Height"]); // row.Field<float>("Height");
-      thisPart.ColorId = Convert.ToInt32(row["Color"]); // row.Field<int>("Color");
-      thisPart.SKU = row.Field<string>("SKU");
-      thisPart.Cost = 0;
-      totalCabinetHeight += thisPart.Height;
-
+      lastPart = thisPart;
       if (!String.IsNullOrEmpty(thisPart.SKU))
       {
-        thisPart = GetCostForSku(thisPart);
-        thisPart = GetCostForColorChoice(thisPart);
-        thisPart.MarkedUpCost = thisPart.Cost * (1 + thisPart.ColorMarkup / 100);
+        _ = GetCostForSku(thisPart);
+        _ = GetCostForColorChoice(thisPart);
+        thisPart.ApplyMarkup(thisPart.ColorMarkup);
         subtotal.Value += thisPart.MarkedUpCost;
         subtotal.Flat += thisPart.Cost;
 
@@ -75,7 +68,7 @@ public class PricingService : IPricingService
       }
       priceCalculationStrategy.AddPart(thisPart, thisUserMarkup);
 
-      DataTable featuresDataTable = LoadFeatures(cabinetId);
+      DataTable featuresDataTable = LoadFeatures(thisPart.CabinetId);
       foreach (DataRow featureRow in featuresDataTable.Rows)
       {
         var thisFeature = new Feature()
@@ -107,12 +100,12 @@ public class PricingService : IPricingService
       if (remainingWallHeight > 0)
       {
         // get width from last cabinet
-        var width = LoadWallTreatmentCost(ref thisPart, thisWall.DefaultColor, remainingWallHeight);
-        subtotal.Value += thisPart.MarkedUpCost;
-        subtotal.Flat += thisPart.Cost;
-        subtotal.Plus += thisPart.MarkedUpCost * (1 + thisUserMarkup / 100);
+        var width = LoadWallTreatmentCost(ref lastPart, thisWall.DefaultColor, remainingWallHeight);
+        subtotal.Value += lastPart.MarkedUpCost;
+        subtotal.Flat += lastPart.Cost;
+        subtotal.Plus += lastPart.MarkedUpCost * (1 + thisUserMarkup / 100);
 
-        priceCalculationStrategy.AddWallTreatment(thisPart, thisUserMarkup, remainingWallHeight, width);
+        priceCalculationStrategy.AddWallTreatment(lastPart, thisUserMarkup, remainingWallHeight, width);
       }
     }
 

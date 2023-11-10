@@ -28,6 +28,7 @@ builder.Services.AddScoped<NewOrderPriceCalculationStrategy>();
 builder.Services.AddScoped<IGetUserMarkup, SqliteGetUserMarkupService>();
 builder.Services.AddScoped<IKitchenDataService, SqliteKitchenDataService>();
 builder.Services.AddScoped<IWallDataService, SqliteWallDataService>();
+builder.Services.AddScoped<ICabinetDataService, SqliteCabinetDataService>();
 
 var app = builder.Build();
 

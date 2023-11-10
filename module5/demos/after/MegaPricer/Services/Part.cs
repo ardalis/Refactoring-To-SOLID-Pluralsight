@@ -1,7 +1,8 @@
 ﻿namespace MegaPricer.Services;
 
-public record struct Part
+public class Part
 {
+  public int CabinetId { get; set; }
   public float Width { get; set; }
   public float Height { get; set; }
   public float Depth { get; set; }
@@ -14,4 +15,9 @@ public record struct Part
   public int Quantity { get; set; }
   public decimal Cost { get; set; }
   public decimal MarkedUpCost { get; set; }
+
+  public void ApplyMarkup(decimal markup)
+  {
+    MarkedUpCost = Cost * (1 + markup / 100);
+  }
 }
