@@ -1,5 +1,4 @@
 ﻿using System.Data;
-using System.Xml.Linq;
 using Ardalis.Result;
 using MegaPricer.Data;
 using Microsoft.Data.Sqlite;
@@ -25,7 +24,7 @@ public class PricingService : IPricingService
     IPriceCalculationStrategy priceCalculationStrategy)
   {
     Subtotals subtotal = new();
-
+    Part thisPart = new();
     decimal thisUserMarkup = 0;
 
     if (priceRequest.wallOrderNum == 0)
@@ -36,22 +35,28 @@ public class PricingService : IPricingService
     {
       return Result.Invalid(new ValidationError("invalid kitchenId"));
     }
-    Kitchen kitchen = _kitchenDataService
-      .GetKitchenByIdAndCustomer(priceRequest.kitchenId, priceRequest.userName);
+    Kitchen kitchen = _kitchenDataService.GetByIdAndCustomer(priceRequest.kitchenId,
+      priceRequest.userName);
+    float bbHeight = kitchen.BaseHeight;
+    float bbDepth = kitchen.BaseDepth;
 
-    var wallResult = _wallDataService.GetWall(priceRequest.kitchenId, priceRequest.wallOrderNum);
-    if(wallResult.Status == ResultStatus.Invalid)
+    var wallResult = _wallDataService.GetWall(priceRequest.kitchenId,
+      priceRequest.wallOrderNum);
+
+    if (wallResult.Status != ResultStatus.Ok)
     {
-      return Result.Invalid(wallResult.ValidationErrors);
+      if(wallResult.Status == ResultStatus.Invalid)
+      {
+        return Result.Invalid(wallResult.ValidationErrors);
+      }
+      // TODO: Handle other results if necessary
     }
-    Wall thisWall = wallResult.Value;
-    priceCalculationStrategy.Create(kitchen);
+    Wall wall = wallResult.Value;
 
-    DataTable cabinetsDataTable = LoadCabinetsDataTable(thisWall.WallId);
+    DataTable cabinetsTable = LoadCabinetsDataTable(wall.WallId);
 
     float totalCabinetHeight = 0;
-    Part thisPart = new();
-    foreach (DataRow row in cabinetsDataTable.Rows) // each cabinet
+    foreach (DataRow row in cabinetsTable.Rows) // each cabinet
     {
       int cabinetId = Convert.ToInt32(row["CabinetId"]);
       thisPart.Width = Convert.ToSingle(row["Width"]); // row.Field<float>("Width");
@@ -75,8 +80,8 @@ public class PricingService : IPricingService
       }
       priceCalculationStrategy.AddPart(thisPart, thisUserMarkup);
 
-      DataTable featuresDataTable = LoadFeatures(cabinetId);
-      foreach (DataRow featureRow in featuresDataTable.Rows)
+      DataTable featuresTable = LoadFeatures(cabinetId);
+      foreach (DataRow featureRow in featuresTable.Rows)
       {
         var thisFeature = new Feature()
         {
@@ -100,14 +105,14 @@ public class PricingService : IPricingService
       }
     }
 
-    if (!thisWall.IsIsland)
+    if (!wall.IsIsland)
     {
-      float remainingWallHeight = thisWall.WallHeight - totalCabinetHeight;
+      float remainingWallHeight = wall.Height - totalCabinetHeight;
       // price wall color backing around cabinets
       if (remainingWallHeight > 0)
       {
         // get width from last cabinet
-        var width = LoadWallTreatmentCost(ref thisPart, thisWall.DefaultColor, remainingWallHeight);
+        var width = LoadWallTreatmentCost(ref thisPart, wall.DefaultColorId, remainingWallHeight);
         subtotal.Value += thisPart.MarkedUpCost;
         subtotal.Flat += thisPart.Cost;
         subtotal.Plus += thisPart.MarkedUpCost * (1 + thisUserMarkup / 100);
@@ -249,7 +254,7 @@ public class PricingService : IPricingService
 
   private static DataTable LoadCabinetsDataTable(int wallId)
   {
-    var dt = new DataTable();
+    var resultTable = new DataTable();
     using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
     {
       var cmd = conn.CreateCommand();
@@ -260,14 +265,14 @@ public class PricingService : IPricingService
       {
         do
         {
-          dt.BeginLoadData();
-          dt.Load(dr);
-          dt.EndLoadData();
+          resultTable.BeginLoadData();
+          resultTable.Load(dr);
+          resultTable.EndLoadData();
 
         } while (!dr.IsClosed && dr.NextResult());
       }
     }
-    return dt;
+    return resultTable;
   }
-}
 
+}
