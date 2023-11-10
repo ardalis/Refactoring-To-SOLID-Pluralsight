@@ -11,16 +11,19 @@ public class PricingService : IPricingService
   private readonly IKitchenDataService _kitchenDataService;
   private readonly IWallDataService _wallDataService;
   private readonly ICabinetDataService _cabinetDataService;
+  private readonly IPartCostDataService _partCostDataService;
 
   public PricingService(IGetUserMarkup getUserMarkupService,
     IKitchenDataService kitchenDataService,
     IWallDataService wallDataService,
-    ICabinetDataService cabinetDataService)
+    ICabinetDataService cabinetDataService,
+    IPartCostDataService partCostDataService)
   {
     _getUserMarkupService = getUserMarkupService;
     _kitchenDataService = kitchenDataService;
     _wallDataService = wallDataService;
     _cabinetDataService = cabinetDataService;
+    _partCostDataService = partCostDataService;
   }
 
   public Result<PriceGroup> CalculatePrice(PriceRequest priceRequest,
@@ -57,8 +60,8 @@ public class PricingService : IPricingService
       lastPart = thisPart;
       if (!String.IsNullOrEmpty(thisPart.SKU))
       {
-        _ = GetCostForSku(thisPart);
-        _ = GetCostForColorChoice(thisPart);
+        _ = _partCostDataService.GetCostForSku(thisPart);
+        _ = _partCostDataService.GetCostForColorChoice(thisPart);
         thisPart.ApplyMarkup(thisPart.ColorMarkup);
         subtotal.Value += thisPart.MarkedUpCost;
         subtotal.Flat += thisPart.Cost;
@@ -198,69 +201,4 @@ public class PricingService : IPricingService
     return dt3;
   }
 
-  private static Part GetCostForColorChoice(Part thisPart)
-  {
-    using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
-    {
-      var cmd = conn.CreateCommand();
-      cmd.CommandText = "SELECT * FROM PricingColors WHERE PricingColorId = @pricingColorId";
-      cmd.Parameters.AddWithValue("@pricingColorId", thisPart.ColorId);
-      conn.Open();
-      using (SqliteDataReader dr = cmd.ExecuteReader())
-      {
-        if (dr.HasRows && dr.Read())
-        {
-          thisPart.ColorName = dr.GetString("Name");
-          thisPart.ColorMarkup = dr.GetDecimal("PercentMarkup");
-          thisPart.ColorPerSquareFootCost = dr.GetDecimal("ColorPerSquareFoot");
-        }
-      }
-    }
-
-    return thisPart;
-  }
-
-  private static Part GetCostForSku(Part thisPart)
-  {
-    using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
-    {
-      var cmd = conn.CreateCommand();
-      cmd.CommandText = "SELECT * FROM PricingSkus WHERE SKU = @sku";
-      cmd.Parameters.AddWithValue("@sku", thisPart.SKU);
-      conn.Open();
-      using (SqliteDataReader dr = cmd.ExecuteReader())
-      {
-        if (dr.HasRows && dr.Read())
-        {
-          thisPart.Cost = dr.GetDecimal("WholesalePrice");
-        }
-      }
-    }
-
-    return thisPart;
-  }
-
-  private static DataTable LoadCabinetsDataTable(int wallId)
-  {
-    var dt = new DataTable();
-    using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
-    {
-      var cmd = conn.CreateCommand();
-      cmd.CommandText = "SELECT * FROM Cabinets WHERE WallId = @wallId ORDER BY CabinetOrder";
-      cmd.Parameters.AddWithValue("@wallId", wallId);
-      conn.Open();
-      using (SqliteDataReader dr = cmd.ExecuteReader())
-      {
-        do
-        {
-          dt.BeginLoadData();
-          dt.Load(dr);
-          dt.EndLoadData();
-
-        } while (!dr.IsClosed && dr.NextResult());
-      }
-    }
-    return dt;
-  }
 }
-
