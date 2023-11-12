@@ -31,6 +31,7 @@ builder.Services.AddScoped<IWallDataService, SqliteWallDataService>();
 builder.Services.AddScoped<ICabinetDataService, SqliteCabinetDataService>();
 builder.Services.AddScoped<IPartCostDataService, SqlitePartCostDataService>();
 builder.Services.AddScoped<IFeatureDataService, SqliteFeatureDataService>();
+builder.Services.AddScoped<IPartPricingService, SqlitePartPricingService>();
 
 var app = builder.Build();
 

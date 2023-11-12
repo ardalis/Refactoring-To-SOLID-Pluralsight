@@ -11,7 +11,7 @@ public partial class PricingService : IPricingService
   private readonly ICabinetDataService _cabinetDataService;
   private readonly IPartCostDataService _partCostDataService;
   private readonly IFeatureDataService _featureDataService;
-  private readonly IPricingService _pricingService;
+  private readonly IPartPricingService _partPricingService;
 
   public PricingService(IGetUserMarkup getUserMarkupService,
     IKitchenDataService kitchenDataService,
@@ -19,7 +19,7 @@ public partial class PricingService : IPricingService
     ICabinetDataService cabinetDataService,
     IPartCostDataService partCostDataService,
     IFeatureDataService featureDataService,
-    IPricingService pricingService)
+    IPartPricingService partPricingService)
   {
     _getUserMarkupService = getUserMarkupService;
     _kitchenDataService = kitchenDataService;
@@ -27,7 +27,7 @@ public partial class PricingService : IPricingService
     _cabinetDataService = cabinetDataService;
     _partCostDataService = partCostDataService;
     _featureDataService = featureDataService;
-    _pricingService = pricingService;
+    _partPricingService = partPricingService;
   }
 
   public Result<PriceGroup> CalculatePrice(PriceRequest priceRequest,
@@ -81,7 +81,7 @@ public partial class PricingService : IPricingService
       {
         if (thisFeature.ColorId > 0)
         {
-          _ = _pricingService.LoadFeatureCostInfo(thisUserMarkup, thisFeature);
+          _partPricingService.LoadFeatureCostInfo(thisUserMarkup, thisFeature);
           subtotal.Value += thisFeature.MarkedUpCost;
           subtotal.Flat += thisFeature.FlatCost;
           subtotal.Plus += thisFeature.UserMarkedUpCost;
@@ -98,12 +98,12 @@ public partial class PricingService : IPricingService
       if (remainingWallHeight > 0)
       {
         // get width from last cabinet
-        var width = _pricingService.LoadWallTreatmentCost(ref lastPart, thisWall.DefaultColor, remainingWallHeight);
+        _partPricingService.LoadWallTreatmentCost(lastPart, thisWall.DefaultColor, remainingWallHeight);
         subtotal.Value += lastPart.MarkedUpCost;
         subtotal.Flat += lastPart.Cost;
         subtotal.Plus += lastPart.MarkedUpCost * (1 + thisUserMarkup / 100);
 
-        priceCalculationStrategy.AddWallTreatment(lastPart, thisUserMarkup, remainingWallHeight, width);
+        priceCalculationStrategy.AddWallTreatment(lastPart, thisUserMarkup, remainingWallHeight, lastPart.Width);
       }
     }
 
