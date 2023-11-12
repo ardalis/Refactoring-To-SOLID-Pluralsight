@@ -1,11 +1,9 @@
-﻿using System.Data;
-using Ardalis.Result;
+﻿using Ardalis.Result;
 using MegaPricer.Data;
-using Microsoft.Data.Sqlite;
 
 namespace MegaPricer.Services;
 
-public class PricingService : IPricingService
+public partial class PricingService : IPricingService
 {
   private readonly IGetUserMarkup _getUserMarkupService;
   private readonly IKitchenDataService _kitchenDataService;
@@ -13,13 +11,15 @@ public class PricingService : IPricingService
   private readonly ICabinetDataService _cabinetDataService;
   private readonly IPartCostDataService _partCostDataService;
   private readonly IFeatureDataService _featureDataService;
+  private readonly IPricingService _pricingService;
 
   public PricingService(IGetUserMarkup getUserMarkupService,
     IKitchenDataService kitchenDataService,
     IWallDataService wallDataService,
     ICabinetDataService cabinetDataService,
     IPartCostDataService partCostDataService,
-    IFeatureDataService featureDataService)
+    IFeatureDataService featureDataService,
+    IPricingService pricingService)
   {
     _getUserMarkupService = getUserMarkupService;
     _kitchenDataService = kitchenDataService;
@@ -27,6 +27,7 @@ public class PricingService : IPricingService
     _cabinetDataService = cabinetDataService;
     _partCostDataService = partCostDataService;
     _featureDataService = featureDataService;
+    _pricingService = pricingService;
   }
 
   public Result<PriceGroup> CalculatePrice(PriceRequest priceRequest,
@@ -80,7 +81,7 @@ public class PricingService : IPricingService
       {
         if (thisFeature.ColorId > 0)
         {
-          _ = LoadFeatureCostInfo(thisUserMarkup, thisFeature);
+          _ = _pricingService.LoadFeatureCostInfo(thisUserMarkup, thisFeature);
           subtotal.Value += thisFeature.MarkedUpCost;
           subtotal.Flat += thisFeature.FlatCost;
           subtotal.Plus += thisFeature.UserMarkedUpCost;
@@ -97,7 +98,7 @@ public class PricingService : IPricingService
       if (remainingWallHeight > 0)
       {
         // get width from last cabinet
-        var width = LoadWallTreatmentCost(ref lastPart, thisWall.DefaultColor, remainingWallHeight);
+        var width = _pricingService.LoadWallTreatmentCost(ref lastPart, thisWall.DefaultColor, remainingWallHeight);
         subtotal.Value += lastPart.MarkedUpCost;
         subtotal.Flat += lastPart.Cost;
         subtotal.Plus += lastPart.MarkedUpCost * (1 + thisUserMarkup / 100);
@@ -108,66 +109,4 @@ public class PricingService : IPricingService
 
     return new PriceGroup(subtotal.Value, subtotal.Flat, subtotal.Plus);
   }
-
-  private static float LoadWallTreatmentCost(ref Part thisPart, int defaultColor, float remainingWallHeight)
-  {
-    float width = thisPart.Width;
-    decimal area = (decimal)(remainingWallHeight * width);
-    using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
-    {
-      var cmd = conn.CreateCommand();
-      cmd.CommandText = "SELECT * FROM PricingColors WHERE PricingColorId = @pricingColorId";
-      cmd.Parameters.AddWithValue("@pricingColorId", defaultColor);
-      conn.Open();
-      using (SqliteDataReader dr = cmd.ExecuteReader())
-      {
-        if (dr.HasRows && dr.Read())
-        {
-          thisPart.SKU = "PAINT";
-          thisPart.ColorName = dr.GetString("Name");
-          thisPart.ColorMarkup = dr.GetDecimal("PercentMarkup");
-          thisPart.ColorPerSquareFootCost = dr.GetDecimal("ColorPerSquareFoot");
-
-          thisPart.Cost = area * thisPart.ColorPerSquareFootCost / 144;
-          thisPart.MarkedUpCost = thisPart.Cost * (1 + thisPart.ColorMarkup / 100);
-        }
-      }
-    }
-
-    return width;
-  }
-
-  private static Feature LoadFeatureCostInfo(decimal thisUserMarkup, Feature thisFeature)
-  {
-    using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
-    {
-      var cmd = conn.CreateCommand();
-      cmd.CommandText = "SELECT * FROM PricingColors WHERE PricingColorId = @pricingColorId";
-      cmd.Parameters.AddWithValue("@pricingColorId", thisFeature.ColorId);
-      conn.Open();
-      using (SqliteDataReader dr = cmd.ExecuteReader())
-      {
-        if (dr.HasRows && dr.Read())
-        {
-          thisFeature.ColorName = dr.GetString("Name");
-          decimal colorMarkup = dr.GetDecimal("PercentMarkup");
-          thisFeature.ColorPerSquareFootCost = dr.GetDecimal("ColorPerSquareFoot");
-          thisFeature.WholesalePrice = dr.GetDecimal("WholesalePrice");
-
-          decimal areaInSf = (decimal)(thisFeature.Height * thisFeature.Width / 144);
-          thisFeature.FlatCost = areaInSf * thisFeature.ColorPerSquareFootCost;
-          if (thisFeature.FlatCost == 0)
-          {
-            thisFeature.FlatCost = thisFeature.Quantity * thisFeature.WholesalePrice;
-          }
-          thisFeature.MarkedUpCost = thisFeature.FlatCost * (1 + thisFeature.ColorMarkup / 100);
-          thisFeature.UserMarkedUpCost = thisFeature.MarkedUpCost * (1 + thisUserMarkup / 100);
-        }
-      }
-    }
-
-    return thisFeature;
-  }
-
-
 }
