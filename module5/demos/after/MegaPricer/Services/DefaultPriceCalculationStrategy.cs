@@ -1,5 +1,7 @@
 ﻿using MegaPricer.Data;
 using MegaPricer.Interfaces;
+using MegaPricer.Models;
+using Feature = MegaPricer.Models.Feature;
 
 namespace MegaPricer.Services;
 

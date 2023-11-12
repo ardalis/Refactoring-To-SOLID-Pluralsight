@@ -2,7 +2,9 @@
 using Ardalis.Result;
 using MegaPricer.Data;
 using MegaPricer.Interfaces;
+using MegaPricer.Models;
 using Microsoft.Data.Sqlite;
+using Wall = MegaPricer.Models.Wall;
 
 namespace MegaPricer.Services;
 

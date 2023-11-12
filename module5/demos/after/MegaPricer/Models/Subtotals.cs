@@ -1,4 +1,4 @@
-﻿namespace MegaPricer.Services;
+﻿namespace MegaPricer.Models;
 
 public record struct Subtotals()
 {

@@ -1,5 +1,6 @@
 ﻿using MegaPricer.Data;
 using MegaPricer.Interfaces;
+using MegaPricer.Models;
 using MegaPricer.Services;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 

@@ -1,6 +1,8 @@
 ﻿using MegaPricer.Data;
 using MegaPricer.Interfaces;
+using MegaPricer.Models;
 using Microsoft.Data.Sqlite;
+using Feature = MegaPricer.Models.Feature;
 
 namespace MegaPricer.Services;
 

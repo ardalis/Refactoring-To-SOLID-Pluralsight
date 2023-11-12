@@ -1,4 +1,4 @@
-﻿using MegaPricer.Services;
+﻿using MegaPricer.Models;
 
 namespace MegaPricer.Interfaces;
 

@@ -1,6 +1,9 @@
 ﻿using Ardalis.Result;
 using MegaPricer.Data;
 using MegaPricer.Interfaces;
+using MegaPricer.Models;
+using Wall = MegaPricer.Models.Wall;
+using Feature = MegaPricer.Models.Feature;
 
 namespace MegaPricer.Services;
 
