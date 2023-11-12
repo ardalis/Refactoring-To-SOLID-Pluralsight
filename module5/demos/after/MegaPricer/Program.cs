@@ -29,6 +29,8 @@ builder.Services.AddScoped<IGetUserMarkup, SqliteGetUserMarkupService>();
 builder.Services.AddScoped<IKitchenDataService, SqliteKitchenDataService>();
 builder.Services.AddScoped<IWallDataService, SqliteWallDataService>();
 builder.Services.AddScoped<ICabinetDataService, SqliteCabinetDataService>();
+builder.Services.AddScoped<IPartCostDataService, SqlitePartCostDataService>();
+builder.Services.AddScoped<IFeatureDataService, SqliteFeatureDataService>();
 
 var app = builder.Build();
 

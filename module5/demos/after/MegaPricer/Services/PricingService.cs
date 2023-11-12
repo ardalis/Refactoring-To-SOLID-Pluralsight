@@ -12,18 +12,21 @@ public class PricingService : IPricingService
   private readonly IWallDataService _wallDataService;
   private readonly ICabinetDataService _cabinetDataService;
   private readonly IPartCostDataService _partCostDataService;
+  private readonly IFeatureDataService _featureDataService;
 
   public PricingService(IGetUserMarkup getUserMarkupService,
     IKitchenDataService kitchenDataService,
     IWallDataService wallDataService,
     ICabinetDataService cabinetDataService,
-    IPartCostDataService partCostDataService)
+    IPartCostDataService partCostDataService,
+    IFeatureDataService featureDataService)
   {
     _getUserMarkupService = getUserMarkupService;
     _kitchenDataService = kitchenDataService;
     _wallDataService = wallDataService;
     _cabinetDataService = cabinetDataService;
     _partCostDataService = partCostDataService;
+    _featureDataService = featureDataService;
   }
 
   public Result<PriceGroup> CalculatePrice(PriceRequest priceRequest,
@@ -71,22 +74,13 @@ public class PricingService : IPricingService
       }
       priceCalculationStrategy.AddPart(thisPart, thisUserMarkup);
 
-      DataTable featuresDataTable = LoadFeatures(thisPart.CabinetId);
-      foreach (DataRow featureRow in featuresDataTable.Rows)
+      List<Feature> features = _featureDataService
+                                .ListFeaturesForCabinet(thisPart.CabinetId);
+      foreach (var thisFeature in features)
       {
-        var thisFeature = new Feature()
-        {
-          FeatureId = Convert.ToInt32(featureRow["FeatureId"]),
-          ColorId = Convert.ToInt32(featureRow["Color"]),
-          SKU = Convert.ToString(featureRow["SKU"]),
-          Quantity = Convert.ToInt32(featureRow["Quantity"]),
-          Height = Convert.ToSingle(featureRow["Height"]),
-          Width = Convert.ToSingle(featureRow["Width"])
-        };
-
         if (thisFeature.ColorId > 0)
         {
-          thisFeature = LoadFeatureCostInfo(thisUserMarkup, thisFeature);
+          _ = LoadFeatureCostInfo(thisUserMarkup, thisFeature);
           subtotal.Value += thisFeature.MarkedUpCost;
           subtotal.Flat += thisFeature.FlatCost;
           subtotal.Plus += thisFeature.UserMarkedUpCost;
@@ -175,30 +169,5 @@ public class PricingService : IPricingService
     return thisFeature;
   }
 
-  private static DataTable LoadFeatures(int cabinetId)
-  {
-    DataTable dt3;
-    // get feature cost
-    using (var conn = new SqliteConnection(ConfigurationSettings.ConnectionString))
-    {
-      var cmd = conn.CreateCommand();
-      cmd.CommandText = "SELECT * FROM Features WHERE CabinetId = @cabinetId ORDER BY FeatureOrder";
-      cmd.Parameters.AddWithValue("@cabinetId", cabinetId);
-      conn.Open();
-      using (SqliteDataReader dr = cmd.ExecuteReader())
-      {
-        do
-        {
-          dt3 = new DataTable();
-          dt3.BeginLoadData();
-          dt3.Load(dr);
-          dt3.EndLoadData();
-
-        } while (!dr.IsClosed && dr.NextResult());
-      }
-    }
-
-    return dt3;
-  }
 
 }
