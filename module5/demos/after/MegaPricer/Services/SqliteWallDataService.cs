@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using Ardalis.Result;
 using MegaPricer.Data;
+using MegaPricer.Interfaces;
 using Microsoft.Data.Sqlite;
 
 namespace MegaPricer.Services;

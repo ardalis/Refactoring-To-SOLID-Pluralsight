@@ -1,5 +1,6 @@
 ﻿using Ardalis.Result;
 using MegaPricer.Data;
+using MegaPricer.Interfaces;
 
 namespace MegaPricer.Services;
 

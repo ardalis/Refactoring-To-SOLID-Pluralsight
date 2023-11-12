@@ -1,4 +1,6 @@
-﻿namespace MegaPricer.Services;
+﻿using MegaPricer.Services;
+
+namespace MegaPricer.Interfaces;
 
 public interface IPartCostDataService
 {

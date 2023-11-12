@@ -1,6 +1,6 @@
 ﻿using MegaPricer.Data;
 
-namespace MegaPricer.Services;
+namespace MegaPricer.Interfaces;
 
 public interface IKitchenDataService
 {

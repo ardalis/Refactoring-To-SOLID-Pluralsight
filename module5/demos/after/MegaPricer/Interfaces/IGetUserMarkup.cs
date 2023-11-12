@@ -1,4 +1,4 @@
-﻿namespace MegaPricer.Services;
+﻿namespace MegaPricer.Interfaces;
 
 public interface IGetUserMarkup
 {

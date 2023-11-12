@@ -1,6 +1,8 @@
 ﻿using MegaPricer.Data;
+using MegaPricer.Services;
+using Feature = MegaPricer.Services.Feature;
 
-namespace MegaPricer.Services;
+namespace MegaPricer.Interfaces;
 
 public interface IOrderDataService
 {
