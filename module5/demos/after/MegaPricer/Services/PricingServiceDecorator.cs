@@ -18,6 +18,15 @@ public class PricingServiceDecorator : IPricingService
     if (Context.Session[priceRequest.userName]["PricingOff"] == "Y") return new PriceGroup(0, 0, 0);
     Context.Session[priceRequest.userName]["WallWeight"] = 0;
 
+    if (priceRequest.wallOrderNum == 0)
+    {
+      return Result.Forbidden();
+    }
+    if (priceRequest.kitchenId <= 0)
+    {
+      return Result.Invalid(new ValidationError("invalid kitchenId"));
+    }
+
     try
     {
       return _pricingService.CalculatePrice(priceRequest, priceCalculationStrategy);

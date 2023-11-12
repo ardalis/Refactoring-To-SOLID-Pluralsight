@@ -37,14 +37,6 @@ public partial class PricingService : IPricingService
 
     decimal thisUserMarkup = 0;
 
-    if (priceRequest.wallOrderNum == 0)
-    {
-      return Result.Forbidden();
-    }
-    if (priceRequest.kitchenId <= 0)
-    {
-      return Result.Invalid(new ValidationError("invalid kitchenId"));
-    }
     Kitchen kitchen = _kitchenDataService
       .GetKitchenByIdAndCustomer(priceRequest.kitchenId, priceRequest.userName);
 
