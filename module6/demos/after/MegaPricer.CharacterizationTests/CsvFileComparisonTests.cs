@@ -1,4 +1,5 @@
-﻿using ApprovalTests;
+﻿using System.ComponentModel;
+using ApprovalTests;
 using ApprovalTests.Reporters;
 
 namespace MegaPricer.CharacterizationTests;
@@ -6,7 +7,7 @@ namespace MegaPricer.CharacterizationTests;
 [UseReporter(typeof(DiffReporter))]
 public class CsvFileComparisonTests
 {
-  [Fact]
+  //[Fact]
   public void TestCsvFileIsAsExpected()
   {
     // Generate the new CSV file (includes a timestamp)

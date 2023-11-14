@@ -7,7 +7,6 @@ namespace MegaPricer.IntegrationTests;
 public class PriceReportCalculationStrategy_Create
 {
   [Fact]
-  [Category("Integration")]
   public void CreatesCSVFile()
   {
     using (var service = new PriceReportCalculationStrategy())

@@ -5,7 +5,6 @@ namespace MegaPricer.IntegrationTests;
 public class PriceReportCalculationStrategy_AddFeature
 {
   [Fact]
-  [Category("Integration")]
   public void AddsFeatureLineToReport()
   {
     string testSku = Guid.NewGuid().ToString();
