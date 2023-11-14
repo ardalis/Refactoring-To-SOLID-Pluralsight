@@ -32,7 +32,7 @@ public class PricingServiceDecorator_CalculatePrice
   }
 
   [Fact]
-  public void ReturnsInvalidGivenWallOrderNumZero()
+  public void ReturnsForbiddenGivenWallOrderNumZero()
   {
     var pricingService = GetPricingService();
     var decorator = new PricingServiceDecorator(pricingService);
