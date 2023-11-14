@@ -12,6 +12,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "solution items", "solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MegaPricer.UnitTests", "MegaPricer.UnitTests\MegaPricer.UnitTests.csproj", "{7BC3A969-AC3B-4E09-BC19-FD53CD82B802}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MegaPricer.IntegrationTests", "MegaPricer.IntegrationTests\MegaPricer.IntegrationTests.csproj", "{8CB411E2-0313-4C89-9F9B-65FEFBCD4109}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,6 +28,10 @@ Global
 		{7BC3A969-AC3B-4E09-BC19-FD53CD82B802}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7BC3A969-AC3B-4E09-BC19-FD53CD82B802}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7BC3A969-AC3B-4E09-BC19-FD53CD82B802}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CB411E2-0313-4C89-9F9B-65FEFBCD4109}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CB411E2-0313-4C89-9F9B-65FEFBCD4109}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CB411E2-0313-4C89-9F9B-65FEFBCD4109}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CB411E2-0313-4C89-9F9B-65FEFBCD4109}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

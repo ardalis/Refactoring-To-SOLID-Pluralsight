@@ -66,8 +66,6 @@ using (var scope = app.Services.CreateScope())
     //                    context.Database.Migrate();
     context.Database.EnsureCreated();
     SeedData.Initialize(services);
-
-    // TODO: Seed admin user
   }
   catch (Exception ex)
   {
@@ -76,3 +74,5 @@ using (var scope = app.Services.CreateScope())
   }
 }
 app.Run();
+
+public partial class Program { }

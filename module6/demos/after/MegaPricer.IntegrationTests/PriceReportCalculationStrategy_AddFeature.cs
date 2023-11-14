@@ -2,6 +2,7 @@
 using MegaPricer.Services;
 
 namespace MegaPricer.IntegrationTests;
+
 public class PriceReportCalculationStrategy_AddFeature
 {
   [Fact]

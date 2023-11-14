@@ -1,10 +1,20 @@
 ﻿using MegaPricer.Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 public static class SeedData
 {
+  public static class Constants
+  {
+    public const string AdminUserEmail = "admin@test.com";
+    public const string AdminUserPassword = "Pass@word1";
+  }
   public static void Initialize(IServiceProvider serviceProvider)
   {
+    // seed admin user
+    var userManager = serviceProvider.GetRequiredService<UserManager<IdentityUser>>();
+    SeedUserAsync(userManager).GetAwaiter().GetResult();
+
     using (var dbContext = new ApplicationDbContext(
             serviceProvider.GetRequiredService<DbContextOptions<ApplicationDbContext>>()))
     {
@@ -179,9 +189,40 @@ public static class SeedData
     var userMarkup = new UserMarkup()
     {
       MarkupPercent = 10,
-      UserName = "admin@test.com"
+      UserName = Constants.AdminUserEmail
     };
     dbContext.UserMarkups.Add(userMarkup);
     dbContext.SaveChanges();
   }
+
+  public static async Task SeedUserAsync(UserManager<IdentityUser> userManager)
+  {
+    // Check if the user already exists
+    var user = await userManager.FindByNameAsync(Constants.AdminUserEmail);
+    if (user == null)
+    {
+      // Create a new user
+      user = new IdentityUser
+      {
+        UserName = Constants.AdminUserEmail,
+        Email = Constants.AdminUserEmail,
+        // Additional user properties
+      };
+
+      var result = await userManager.CreateAsync(user, Constants.AdminUserEmail);
+
+      if (result.Succeeded)
+      {
+        // User created successfully
+        // Optionally, you can assign roles to the user here
+        // await userManager.AddToRoleAsync(user, "RoleName");
+      }
+      else
+      {
+        // Handle the case where user creation failed
+        throw new Exception("Failed to create seed user");
+      }
+    }
+  }
+
 }
