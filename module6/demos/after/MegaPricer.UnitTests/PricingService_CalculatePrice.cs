@@ -49,13 +49,13 @@ public class PricingService_CalculatePrice
 
     var wallDataService = Substitute.For<IWallDataService>();
     wallDataService.GetWall(Arg.Any<int>(), Arg.Any<int>())
-      .Returns(new Result<Wall>(new Wall() { WallHeight=36f}));
+      .Returns(new Result<Wall>(new Wall() { WallHeight = 36f }));
 
     var cabinetDataService = Substitute.For<ICabinetDataService>();
     cabinetDataService.ListCabinetsForWall(Arg.Any<int>())
       .Returns(new List<Part>()
       {
-        new Part() { 
+        new Part() {
           Height = 36f, Width = 10f, Depth = 18f,
           SKU = sku,
           Cost = flatCost,
@@ -79,13 +79,12 @@ public class PricingService_CalculatePrice
     var priceRequest = GetValidPriceRequest();
     var priceCalculationStrategy = Substitute.For<IPriceCalculationStrategy>();
 
-    var result = pricingService.CalculatePrice(priceRequest, 
+    var result = pricingService.CalculatePrice(priceRequest,
       priceCalculationStrategy);
 
     result.Status.Should().Be(ResultStatus.Ok);
     result.Value.Should().BeEquivalentTo(new PriceGroup(12, flatCost, 18));
   }
-
 
   private PriceRequest GetValidPriceRequest()
   {
@@ -96,5 +95,4 @@ public class PricingService_CalculatePrice
       kitchenId = 1
     };
   }
-
 }
